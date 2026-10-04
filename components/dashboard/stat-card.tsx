@@ -1,0 +1,2 @@
+import { cn } from "@/lib/utils";
+export function StatCard({label,value,tone="default"}:{label:string;value:string;tone?:"default"|"positive"|"negative"}){return <div className="border border-line bg-surface px-4 py-4"><p className="text-[11px] font-medium uppercase tracking-[.12em] text-muted">{label}</p><p className={cn("mt-2 font-mono text-xl font-semibold tracking-tight text-white",tone==="positive"&&"text-profit",tone==="negative"&&"text-loss")}>{value}</p></div>}

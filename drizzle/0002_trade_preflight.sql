@@ -1,0 +1,16 @@
+ALTER TABLE "setup_types" ADD COLUMN IF NOT EXISTS "rules" jsonb DEFAULT '[]'::jsonb NOT NULL;
+ALTER TABLE "setup_types" ADD COLUMN IF NOT EXISTS "avoid_rules" jsonb DEFAULT '[]'::jsonb NOT NULL;
+ALTER TABLE "trades" ADD COLUMN IF NOT EXISTS "setup_grade" text;
+ALTER TABLE "trades" ADD COLUMN IF NOT EXISTS "setup_checklist" jsonb DEFAULT '[]'::jsonb NOT NULL;
+ALTER TABLE "trades" ADD COLUMN IF NOT EXISTS "setup_avoid_checklist" jsonb DEFAULT '[]'::jsonb NOT NULL;
+ALTER TABLE "trades" ADD COLUMN IF NOT EXISTS "psychology_ready" boolean DEFAULT false NOT NULL;
+ALTER TABLE "trades" ADD COLUMN IF NOT EXISTS "psychology_answer" text DEFAULT '' NOT NULL;
+ALTER TABLE "trades" ADD COLUMN IF NOT EXISTS "profit_booked" numeric(14, 2) DEFAULT '0' NOT NULL;
+ALTER TABLE "trades" ADD COLUMN IF NOT EXISTS "break_even_after_profit" boolean DEFAULT false NOT NULL;
+UPDATE "setup_types" SET "rules" = '["Liquidity is swept", "Displacement confirms direction", "Entry has clear invalidation"]'::jsonb WHERE "name" = 'Liquidity Sweep' AND "rules" = '[]'::jsonb;
+UPDATE "setup_types" SET "rules" = '["Break is confirmed", "Retest holds", "Risk is defined"]'::jsonb WHERE "name" = 'Break & Retest' AND "rules" = '[]'::jsonb;
+UPDATE "setup_types" SET "rules" = '["Exhaustion is visible", "Reversal confirmation is present", "Risk is defined"]'::jsonb WHERE "name" = 'Reversal' AND "rules" = '[]'::jsonb;
+UPDATE "setup_types" SET "rules" = '["Trend is clear", "Pullback is controlled", "Risk is defined"]'::jsonb WHERE "name" = 'Continuation' AND "rules" = '[]'::jsonb;
+UPDATE "setup_types" SET "avoid_rules" = '["Chasing an extended move", "Stop loss is unclear"]'::jsonb WHERE "name" = 'Liquidity Sweep' AND "avoid_rules" = '[]'::jsonb;
+UPDATE "setup_types" SET "avoid_rules" = '["Retest fails", "Entry is too far from invalidation"]'::jsonb WHERE "name" = 'Break & Retest' AND "avoid_rules" = '[]'::jsonb;
+UPDATE "setup_types" SET "avoid_rules" = '["No reversal confirmation", "Entering against strong momentum"]'::jsonb WHERE "name" = 'Reversal' AND "avoid_rules" = '[]'::jsonb;

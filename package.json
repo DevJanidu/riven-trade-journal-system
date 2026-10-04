@@ -1,0 +1,45 @@
+{
+  "name": "tradezilla",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "node --require ./scripts/userinfo-fallback.cjs --import tsx --test tests/calculations.test.ts tests/cache.test.ts tests/trade-patch.test.ts",
+    "test:cache:live": "node --require ./scripts/userinfo-fallback.cjs --import tsx scripts/check-cache.ts",
+    "db:generate": "node --require ./scripts/userinfo-fallback.cjs ./node_modules/drizzle-kit/bin.cjs generate",
+    "db:migrate": "node --require ./scripts/userinfo-fallback.cjs ./node_modules/drizzle-kit/bin.cjs migrate",
+    "db:migrate:http": "node --require ./scripts/userinfo-fallback.cjs --import tsx scripts/migrate-http.ts",
+    "db:push": "node --require ./scripts/userinfo-fallback.cjs ./node_modules/drizzle-kit/bin.cjs push",
+    "db:studio": "node --require ./scripts/userinfo-fallback.cjs ./node_modules/drizzle-kit/bin.cjs studio",
+    "db:seed": "node --require ./scripts/userinfo-fallback.cjs --import tsx scripts/seed.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1146.0",
+    "@aws-sdk/s3-request-presigner": "^3.1146.0",
+    "@neondatabase/serverless": "^1.2.0",
+    "drizzle-orm": "^0.45.3",
+    "lucide-react": "^0.468.0",
+    "next": "16.3.8",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "recharts": "^2.15.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "^18.0.5",
+    "drizzle-kit": "^0.31.11",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.8",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  }
+}

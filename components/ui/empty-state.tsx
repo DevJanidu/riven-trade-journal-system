@@ -1,0 +1,2 @@
+import { BookOpen } from "lucide-react"; import { ButtonLink } from "./button";
+export function EmptyState(){return <div className="grid min-h-72 place-items-center border border-dashed border-line bg-surface p-8 text-center"><div><BookOpen className="mx-auto mb-4 text-muted" size={24}/><h3 className="font-semibold text-white">No trades this month</h3><p className="mt-2 text-sm text-muted">Journal your first Gold trade to start tracking your performance.</p><ButtonLink href="/journal" variant="primary" className="mt-5">+ Journal Trade</ButtonLink></div></div>}
