@@ -108,3 +108,40 @@ export const trades = pgTable("trades", {
 ]);
 
 export type TradeRow = typeof trades.$inferSelect;
+
+export const goldWeeklyAnalyses = pgTable("gold_weekly_analyses", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  analysisDate: timestamp("analysis_date", { withTimezone: true }).notNull(),
+  weekStart: date("week_start").notNull(), weekEnd: date("week_end").notNull(),
+  model: text("model").notNull(), promptVersion: text("prompt_version").notNull(),
+  goldPrice: numeric("gold_price", { precision: 16, scale: 6 }),
+  fundamentalBias: text("fundamental_bias").notNull(), confidence: integer("confidence").notNull(),
+  bullishProbability: integer("bullish_probability").notNull(), bearishProbability: integer("bearish_probability").notNull(), rangeProbability: integer("range_probability").notNull(),
+  summary: text("summary").notNull(),
+  analysis: jsonb("analysis").$type<import("@/lib/ai/schemas").GoldWeeklyAnalysis>().notNull(),
+  dataSnapshot: jsonb("data_snapshot").$type<import("@/lib/market-data/types").GoldAnalysisSnapshot>().notNull(),
+  technicalContext: jsonb("technical_context").$type<import("@/lib/ai/schemas").TechnicalContext>().notNull(),
+  technicalAlignment: text("technical_alignment").$type<import("@/lib/ai/schemas").TechnicalAlignment>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, table => [
+  index("gold_analyses_user_created_idx").on(table.userId, table.createdAt),
+  index("gold_analyses_user_week_idx").on(table.userId, table.weekStart),
+  check("gold_analysis_confidence_range", sql`${table.confidence} BETWEEN 0 AND 100`),
+  check("gold_analysis_probability_range", sql`${table.bullishProbability} BETWEEN 0 AND 100 AND ${table.bearishProbability} BETWEEN 0 AND 100 AND ${table.rangeProbability} BETWEEN 0 AND 100`),
+  check("gold_analysis_probability_total", sql`${table.bullishProbability} + ${table.bearishProbability} + ${table.rangeProbability} = 100`),
+  check("gold_analysis_bias_valid", sql`${table.fundamentalBias} IN ('strongly_bullish','moderately_bullish','neutral','moderately_bearish','strongly_bearish')`),
+]);
+
+export const goldGenerationLocks = pgTable("gold_generation_locks", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  token: uuid("token").notNull(), lockedUntil: timestamp("locked_until", { withTimezone: true }).notNull(),
+  nextAllowedAt: timestamp("next_allowed_at", { withTimezone: true }).notNull(),
+});
+
+export const marketDataCache = pgTable("market_data_cache", {
+  key: text("key").primaryKey(), payload: jsonb("payload").$type<unknown>(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  lockToken: uuid("lock_token").notNull(), lockedUntil: timestamp("locked_until", { withTimezone: true }).notNull(),
+});

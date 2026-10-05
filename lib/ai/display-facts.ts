@@ -1,0 +1,14 @@
+import type { GoldAnalysisSnapshot } from "@/lib/market-data/types";
+export interface DisplayFact { key: string; name: string; value: string; change: string; date: string | null; fetchedAt: string; source: string; sourceUrl: string; stale: boolean; context: string; releaseDate: string | null }
+const number = (value: number | null, suffix = "") => value === null ? "Unavailable" : `${value.toLocaleString("en-US", { maximumFractionDigits: 4 })}${suffix}`;
+export function displayFacts(snapshot: GoldAnalysisSnapshot): DisplayFact[] {
+  const gold = snapshot.gold; const cot = snapshot.positioning;
+  const rows: DisplayFact[] = [{ key: "gold", name: "Gold / XAUUSD", value: number(gold?.latestPrice ?? null, " USD/oz"), change: number(gold?.weeklyChangePercent ?? null, "% (1-week closes)"), date: gold?.observationDate ?? null, fetchedAt: gold?.fetchedAt ?? snapshot.analysisDate, source: "Alpha Vantage", sourceUrl: "https://www.alphavantage.co/documentation/#gold-silver", stale: snapshot.dataQuality.staleData.includes("Gold price"), context: `Historical changes use Monday-Friday daily closes. True weekly OHLC unavailable. Historical close date: ${gold?.historyDate ?? "unavailable"}. Close-based week: ${gold?.historyWeekStart ?? "unavailable"} to ${gold?.historyWeekEnd ?? "unavailable"}. Previous trading-day close: ${number(gold?.previousClose ?? null)} (${gold?.previousCloseDate ?? "unavailable"}). Four-week change: ${number(gold?.fourWeekChangePercent ?? null, "%")}.`, releaseDate: null }];
+  for (const [key, item] of Object.entries(snapshot.macro)) {
+    const change = item.changeBps !== null ? number(item.changeBps, " bps") : item.payrollChangePersons !== null ? number(item.payrollChangePersons, " jobs MoM") : item.momPercent !== null ? number(item.momPercent, "% MoM") : item.change !== null ? number(item.change, item.units === "Percent" || key === "gdp" ? " pp" : "") : "Unavailable";
+    rows.push({ key, name: item.name, value: number(item.latestValue, ` ${item.units}`), change, date: item.latestDate, fetchedAt: item.fetchedAt, source: item.source, sourceUrl: item.sourceUrl, stale: item.stale, releaseDate: item.releaseDate,
+      context: `${item.comparison}. ${item.seasonalAdjustment}.${item.yoyPercent !== null ? ` YoY: ${number(item.yoyPercent, "%")}.` : ""} ${item.warnings.join(" ")}` });
+  }
+  rows.push({ key: "positioning", name: "COMEX Gold: managed-money net", value: number(cot?.net ?? null, " contracts"), change: number(cot?.weeklyNetChange ?? null, " contracts weekly"), date: cot?.reportDate ?? null, fetchedAt: cot?.fetchedAt ?? snapshot.analysisDate, source: "CFTC", sourceUrl: cot?.sourceUrl ?? "https://publicreporting.cftc.gov/d/72hh-3qpy", stale: cot?.stale ?? false, context: "Disaggregated futures only, contract 088691. Net = long minus short; positioning is contextual.", releaseDate: null });
+  return rows;
+}

@@ -69,6 +69,9 @@ function conditionsFor(filters: TradeFilters, userId: string): SQL[] {
   } else if (filters.month) {
     const { start, end } = monthBounds(filters.month);
     conditions.push(gte(trades.date, start), lt(trades.date, end));
+  } else {
+    if (filters.startDate) conditions.push(gte(trades.date, filters.startDate));
+    if (filters.endDateExclusive) conditions.push(lt(trades.date, filters.endDateExclusive));
   }
   if (filters.session) conditions.push(eq(trades.session, filters.session));
   if (filters.setup) conditions.push(eq(trades.setup, filters.setup));
@@ -123,6 +126,10 @@ export async function getMonthlyTrades(month: string): Promise<Trade[]> {
   const monthly = await getTrades({ month });
   await setCached(cacheKey, monthly, 45);
   return monthly;
+}
+
+export async function getTradesForRange(startDate: string, endDateExclusive: string): Promise<Trade[]> {
+  return getTrades({ startDate, endDateExclusive });
 }
 
 async function invalidateMonth(userId: string, ...months: string[]) {

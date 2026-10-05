@@ -9,25 +9,36 @@ import { directions, results, sessions, setups, type ApiResponse, type Trade, ty
 import type { TradeDraft } from "@/lib/validations/draft";
 import { TradeTable } from "./trade-table";
 import { Spinner } from "@/components/ui/spinner";
+import { paginate } from "@/lib/pagination";
 
 type FilterKey = "session" | "setup" | "result" | "direction";
-type Props = { initialTrades: Trade[]; initialDrafts: TradeDraft[]; month: string; initialFilters: TradeFilters; onItemDeleted?: (id: string, kind: "trade" | "draft") => void };
+type Props = { initialTrades: Trade[]; initialDrafts: TradeDraft[]; month: string; initialPage?: number; initialFilters: TradeFilters; onItemDeleted?: (id: string, kind: "trade" | "draft") => void };
 const PAGE_SIZE = 10;
 
-export function TradesExplorer({ initialTrades, initialDrafts, month, initialFilters, onItemDeleted }: Props) {
+export function TradesExplorer({ initialTrades, initialDrafts, month, initialPage = 1, initialFilters, onItemDeleted }: Props) {
   const router = useRouter();
   const [filters, setFilters] = useState<TradeFilters>(initialFilters);
   const [trades, setTrades] = useState(initialTrades);
   const [drafts, setDrafts] = useState(initialDrafts);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initialPage);
+  const shownDrafts = drafts.filter(draft => !filters.date && !filters.result && (!filters.session || draft.data.session === filters.session) && (!filters.setup || draft.data.setup === filters.setup) && (!filters.direction || draft.data.direction === filters.direction));
+  const shownCount = trades.length + shownDrafts.length;
+  const safePage = paginate(shownCount, page, PAGE_SIZE).page;
 
   useEffect(() => {
     const query = new URLSearchParams({ month });
     if (filters.date) query.set("date", filters.date);
     for (const key of ["session", "setup", "result", "direction"] as const) if (filters[key]) query.set(key, filters[key]);
+    query.set("page", String(safePage));
     window.history.replaceState(null, "", `/trades?${query}`);
+  }, [filters, month, safePage]);
+
+  useEffect(() => {
+    const query = new URLSearchParams({ month });
+    if (filters.date) query.set("date", filters.date);
+    for (const key of ["session", "setup", "result", "direction"] as const) if (filters[key]) query.set(key, filters[key]);
     const initialQuery = new URLSearchParams({ month });
     if (initialFilters.date) initialQuery.set("date", initialFilters.date);
     for (const key of ["session", "setup", "result", "direction"] as const) if (initialFilters[key]) initialQuery.set(key, initialFilters[key]);
@@ -65,8 +76,6 @@ export function TradesExplorer({ initialTrades, initialDrafts, month, initialFil
   }
 
   const filtered = Boolean(filters.session || filters.setup || filters.result || filters.direction);
-  const shownDrafts = drafts.filter(draft => !filters.date && !filters.result && (!filters.session || draft.data.session === filters.session) && (!filters.setup || draft.data.setup === filters.setup) && (!filters.direction || draft.data.direction === filters.direction));
-  const shownCount = trades.length + shownDrafts.length;
 
   return <>
     <div className="mb-4 grid gap-3 rounded-[9px] border border-line bg-surface p-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -80,7 +89,7 @@ export function TradesExplorer({ initialTrades, initialDrafts, month, initialFil
       : loading ? <div className="flex min-h-52 items-center justify-center gap-2 border border-line bg-surface p-5 text-sm text-muted"><Spinner label="Loading trades" />Loading trades…</div>
         : shownCount ? <div className="border border-line bg-surface">
           <div className="flex items-center justify-between border-b border-line px-5 py-3.5"><p className="text-sm font-medium text-foreground">All trades</p><p className="text-xs text-muted">{shownCount} shown{shownDrafts.length ? ` · ${shownDrafts.length} draft${shownDrafts.length === 1 ? "" : "s"}` : ""}</p></div>
-          <TradeTable trades={trades} drafts={shownDrafts} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} onDeleted={onDeleted} />
+          <TradeTable trades={trades} drafts={shownDrafts} page={safePage} pageSize={PAGE_SIZE} onPageChange={setPage} onDeleted={onDeleted} />
         </div> : filtered ? <div className="grid min-h-52 place-items-center border border-dashed border-line bg-surface p-8 text-center text-sm text-muted">No trades match these filters.</div> : <EmptyState />}
   </>;
 }

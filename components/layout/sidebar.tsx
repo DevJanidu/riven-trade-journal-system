@@ -2,12 +2,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { BarChart3, BookOpen, CalendarDays, ChevronLeft, ChevronRight, ListChecks, LogOut, Settings2 } from "lucide-react";
+import { BarChart3, BookOpen, BrainCircuit, CalendarDays, ChevronLeft, ChevronRight, FileSpreadsheet, ListChecks, LogOut, Settings2 } from "lucide-react";
 import { logoutAction } from "@/lib/auth/actions";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme-toggle";
 
-const links = [{href:"/dashboard",label:"Dashboard",icon:BarChart3},{href:"/journal",label:"Journal",icon:BookOpen},{href:"/trades",label:"Trades",icon:ListChecks},{href:"/calendar",label:"Calendar",icon:CalendarDays},{href:"/settings/setups",label:"Setup Types",icon:Settings2}];
+const links = [{href:"/dashboard",label:"Dashboard",icon:BarChart3},{href:"/journal",label:"Journal",icon:BookOpen},{href:"/trades",label:"Trades",icon:ListChecks},{href:"/calendar",label:"Calendar",icon:CalendarDays},{href:"/ai-analysis",label:"AI Analysis",icon:BrainCircuit},{href:"/reports",label:"Reports",icon:FileSpreadsheet},{href:"/settings/setups",label:"Setup Types",icon:Settings2}];
 
 export function Sidebar({collapsed,onToggle}:{collapsed:boolean;onToggle:()=>void}) {
   const pathname=usePathname();

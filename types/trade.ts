@@ -55,6 +55,8 @@ export interface Trade {
 export interface TradeFilters {
   date?: string;
   month?: string;
+  startDate?: string;
+  endDateExclusive?: string;
   session?: Trade["session"];
   setup?: string;
   result?: Trade["result"];

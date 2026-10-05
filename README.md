@@ -52,6 +52,8 @@ Configure server-only `RESEND_API_KEY`, `APP_OWNER_EMAIL`, and `EMAIL_FROM=My Jo
 
 ## API
 
+Trade logs, AI analysis history/macro scorecards, and report tables use numbered pagination. Trade/report/history pages retain their filters and selection in the URL. Lists use ten rows per page; report setup breakdown uses five. Summary statistics and Excel downloads always include the complete filtered period. Changing filters resets paging; requests beyond the last page are clamped safely. `npm run test:pagination:browser` verifies paging and complete exports using a temporary account, with no OpenAI inference (requires the app running and the ignored saved analysis artifact).
+
 All responses use `{ "success": true, "data": ... }` or `{ "success": false, "error": "..." }`. Validation responses also include `fieldErrors`.
 
 | Endpoint | Purpose |
@@ -92,3 +94,32 @@ npm run build
 
 Without `DATABASE_URL`, schema generation and static checks can still run, but the live data pages and valid database API requests cannot load data. The API returns 503 for missing database configuration.
 # riven-trade-journal-system
+
+## AI Analysis: Gold fundamental research
+
+`/ai-analysis` is an authenticated macro research dashboard inside this journal. It loads the most recently saved report and historical reports from Neon. Only pressing Generate/Refresh makes an OpenAI request. It provides professional weekly fundamental research with conditional bullish, bearish, and range scenarios. No technical-context input or alignment comparison is required. Previous analyses include a Delete action with confirmation; only the owner can delete a report.
+
+Configure **server-only** `DATABASE_URL`, `OPENAI_API_KEY`, `FRED_API_KEY`, and `ALPHA_VANTAGE_API_KEY`. The old OpenAI variable name has been migrated in the local environment. `OPENAI_GOLD_MODEL` defaults to `gpt-6-luna`; configure deployment environment variables separately. No provider keys go to the browser or PostgreSQL.
+
+Apply the reviewed migration using `npm run db:migrate`. Existing installations using HTTP compatibility migrations can run `npm run db:migrate:ai`, which atomically applies only `drizzle/0006_confused_phalanx.sql` and checks whether its three tables already exist. The SQL is replay-safe with the regular migration workflow. Do not use the older `db:migrate:http` command to install AI tables; it serves the existing trading schema.
+
+```bash
+npm run db:migrate:ai
+npm run test:ai:unit
+npm run test:ai:providers
+npm run test:ai:live
+```
+
+Provider health checks use official live sources and an OpenAI model-access check without generating a report. They print only public data and safe status information. `test:ai:live` creates two temporary accounts, generates **one paid OpenAI report**, tests ownership/cooldown/duplicates and existing pages, then deletes those fixtures. Unit tests use synthetic fixtures without paid API requests. The internal diagnostic `scripts/check-openai-gold.ts` makes one paid structured request and saves a local public-data artifact; `npm run test:ai:browser` reuses that artifact to check desktop and mobile layouts without another model request. Artifacts are gitignored.
+
+Connected sources: Alpha Vantage `GOLD_SILVER_SPOT` and `GOLD_SILVER_HISTORY` with `symbol=XAU`, daily history; 16 verified FRED series; official CFTC disaggregated futures-only managed-money Gold positioning (`72hh-3qpy`, COMEX contract `088691`). Official FRED past release dates are attempted for CPI, PCE, employment, and GDP.
+
+FinanceCalendar supplies the current Monday–Friday economic calendar, prior/consensus/actual values when published, and deterministic event risk. No API key is required. Visible [FinanceCalendar](https://www.financecalendar.com/) attribution accompanies its data. Consensus coverage is measured from actual non-null estimates; calendar availability does not imply consensus availability. Existing saved reports retain their original snapshots; intentionally refresh to collect calendar data for a new report.
+
+Not connected: live news, genuine DXY, market-implied Fed probabilities. Consensus may still be missing or partial in the provider response. The broad trade-weighted USD proxy is correctly named. Gold history supplies daily closes, so true weekly OHLC remains null; close-based ranges are explicitly labeled. Seasonally adjusted inflation index YoY may differ from published headline unadjusted YoY.
+
+Run `npm run test:ai:calendar` for live calendar/provider/input checks with zero OpenAI requests. `npm run test:ai:calendar -- --analyze` intentionally makes one paid structured request, verifies Neon snapshot storage/isolation, and checks browser rendering with a local dev server running. Temporary test accounts/reports are removed afterward. `npm run test:ai:unit` includes calendar validation, consensus, risk, surprise, failure, timezone and attribution tests. See [FinanceCalendar integration](docs/finance-calendar.md) for scoring and operational details.
+
+Database provider leases prevent shared cache stampedes. Gold/CFTC cache for 12 hours, FRED daily/weekly/monthly/quarterly data for 6/12/24/48 hours, and official release dates for 24 hours. Failed sources have a 15-minute backoff. A user generation lease and 15-minute attempt cooldown prevent duplicate charges across serverless instances. Each generation uses one bounded Responses request, medium reasoning, strict JSON schema, no tools, no automatic LLM retries, and `store:false`. Every saved analysis preserves its exact normalized snapshot and prompt/model version. The browser never calls upstream APIs directly.
+
+See [AI Analysis implementation and source reference](docs/ai-analysis.md) for verified series, calculations, security, test evidence, and V2 options.

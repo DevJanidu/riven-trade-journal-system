@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, ArrowRight, ArrowUpRight, CalendarDays, Gauge, ListChecks, Plus, Scale, Sparkles, Target, TrendingDown, TrendingUp } from "lucide-react";
+import { Activity, ArrowRight, ArrowUpRight, CalendarDays, Gauge, ListChecks, Newspaper, Plus, Scale, Sparkles, Target, TrendingDown, TrendingUp } from "lucide-react";
 import { MonthSelector } from "@/components/ui/month-selector";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ButtonLink } from "@/components/ui/button";
@@ -51,7 +51,12 @@ function DashboardHeader({ month }: { month: string }) {
       <h1 className="mt-1.5 text-[28px] font-semibold tracking-tight text-foreground sm:text-[32px]">{monthLabel(month)}</h1>
       <p className="mt-1 text-sm text-muted">XAUUSD <span className="mx-1.5 text-muted">·</span> Monthly performance</p>
     </div>
-    <div className="flex flex-wrap items-center gap-2.5"><MonthSelector month={month} /><ButtonLink href={`/calendar?month=${month}`}><CalendarDays size={16} />Calendar</ButtonLink><ButtonLink href="/journal" variant="primary"><Plus size={16} />Add Trade</ButtonLink></div>
+    <div className="flex flex-wrap items-center gap-2.5">
+      <MonthSelector month={month} />
+      <a href="https://www.forexfactory.com/market/goldusd" target="_blank" rel="noopener noreferrer" aria-label="News — Forex Factory Gold (opens in a new tab)" className="focus-ring secondary-action inline-flex h-10 items-center justify-center gap-2 rounded-md border border-line bg-surface-raised px-4 text-sm font-semibold text-foreground transition-colors hover:border-accent/30 hover:bg-foreground/[.04]"><Newspaper size={16} />News</a>
+      <ButtonLink href={`/calendar?month=${month}`}><CalendarDays size={16} />Calendar</ButtonLink>
+      <ButtonLink href="/journal" variant="primary"><Plus size={16} />Add Trade</ButtonLink>
+    </div>
   </header>;
 }
 

@@ -16,7 +16,7 @@ import type { TradeDraft } from "@/lib/validations/draft";
 import { TradesExplorer } from "./trades-explorer";
 
 type MonthData = { trades: Trade[]; drafts: TradeDraft[] };
-type Props = { month: string; initialFilters: TradeFilters; summaryTrades: Trade[]; initialTrades: Trade[]; initialDrafts: TradeDraft[] };
+type Props = { month: string; initialPage?: number; initialFilters: TradeFilters; summaryTrades: Trade[]; initialTrades: Trade[]; initialDrafts: TradeDraft[] };
 
 async function fetchData<T>(url: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(url, { signal, cache: "no-store" });
@@ -25,7 +25,7 @@ async function fetchData<T>(url: string, signal?: AbortSignal): Promise<T> {
   return json.data;
 }
 
-export function TradesView({ month, initialFilters, summaryTrades, initialTrades, initialDrafts }: Props) {
+export function TradesView({ month, initialPage = 1, initialFilters, summaryTrades, initialTrades, initialDrafts }: Props) {
   const [clearedFilters, setClearedFilters] = useState<TradeFilters | null>(null);
   const [monthly, setMonthly] = useState<MonthData | null>(null);
   const [monthError, setMonthError] = useState("");
@@ -59,6 +59,7 @@ export function TradesView({ month, initialFilters, summaryTrades, initialTrades
   function clearDate() {
     const query = new URLSearchParams(window.location.search);
     query.delete("date");
+    query.delete("page");
     query.set("month", month);
     const parsed = tradeQuerySchema.safeParse(Object.fromEntries(query));
     setClearedFilters(parsed.success ? { ...parsed.data, month } : { month });
@@ -95,7 +96,7 @@ export function TradesView({ month, initialFilters, summaryTrades, initialTrades
         <KpiCard icon={CircleX} value={stats.losses} label="Losing trades" detail={`${stats.totalTrades ? Math.round(stats.losses / stats.totalTrades * 100) : 0}% of all trades`} tone="loss" progress={stats.totalTrades ? stats.losses / stats.totalTrades * 100 : 0} />
         <KpiCard icon={stats.netR >= 0 ? TrendingUp : TrendingDown} value={formatR(stats.netR)} label="Net performance" detail={`${formatR(stats.averageR)} average per trade`} tone={stats.netR >= 0 ? "profit" : "loss"} />
       </section>
-      <TradesExplorer key={JSON.stringify(filters)} initialTrades={visible} initialDrafts={cleared ? monthly?.drafts ?? [] : initialDrafts} month={month} initialFilters={filters} onItemDeleted={onDeleted} />
+      <TradesExplorer key={JSON.stringify(filters)} initialPage={cleared ? 1 : initialPage} initialTrades={visible} initialDrafts={cleared ? monthly?.drafts ?? [] : initialDrafts} month={month} initialFilters={filters} onItemDeleted={onDeleted} />
     </>}
   </>;
 }

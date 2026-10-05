@@ -23,14 +23,13 @@ function pageItems(currentPage: number, totalPages: number): Array<number | "ell
 
 export function Pagination({ currentPage, totalItems, pageSize, onPageChange, itemLabel = "items" }: PaginationProps) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  if (totalPages <= 1) return null;
   const page = Math.min(Math.max(1, currentPage), totalPages);
-  const start = (page - 1) * pageSize + 1;
+  const start = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
   const end = Math.min(totalItems, page * pageSize);
 
   return <nav aria-label={`${itemLabel} pagination`} className="flex flex-col gap-3 border-t border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
     <p className="text-xs text-muted">Showing <span className="font-medium text-foreground">{start}–{end}</span> of <span className="font-medium text-foreground">{totalItems}</span> {itemLabel}</p>
-    <div className="flex items-center gap-1">
+    <div className="flex flex-wrap items-center gap-1">
       <PageButton label="Previous page" disabled={page === 1} onClick={() => onPageChange(page - 1)}><ChevronLeft size={15} /></PageButton>
       {pageItems(page, totalPages).map(item => typeof item === "number"
         ? <PageButton key={item} label={`Page ${item}`} active={item === page} onClick={() => onPageChange(item)}>{item}</PageButton>

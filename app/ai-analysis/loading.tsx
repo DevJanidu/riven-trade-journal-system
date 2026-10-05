@@ -1,0 +1,2 @@
+import { Spinner } from "@/components/ui/spinner";
+export default function Loading() { return <div className="space-y-5"><p className="flex items-center gap-2 text-sm text-muted"><Spinner label="Loading saved analysis" />Loading saved analysis…</p><div className="animate-pulse space-y-5"><div className="h-24 rounded-lg bg-surface" /><div className="grid gap-5 md:grid-cols-2"><div className="h-48 rounded-lg bg-surface" /><div className="h-48 rounded-lg bg-surface" /></div><div className="h-72 rounded-lg bg-surface" /></div></div>; }
