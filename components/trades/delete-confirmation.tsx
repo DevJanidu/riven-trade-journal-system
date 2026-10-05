@@ -49,8 +49,8 @@ export function DeleteConfirmation({ tradeId, month, kind = "trade", compact = f
       <div className="w-full max-w-md border border-line bg-surface-raised shadow-2xl">
         <div className="flex items-start gap-4 p-5">
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-loss/10 text-loss"><AlertTriangle size={20} /></span>
-          <div><h2 id="delete-title" className="font-semibold text-white">Delete this {kind}?</h2><p className="mt-2 text-sm leading-6 text-muted">This permanently removes the {kind} and its saved journal entry. This action cannot be undone.</p></div>
-          <button type="button" onClick={() => setOpen(false)} disabled={pending} className="focus-ring ml-auto text-muted hover:text-white" aria-label="Close"><X size={18} /></button>
+          <div><h2 id="delete-title" className="font-semibold text-foreground">Delete this {kind}?</h2><p className="mt-2 text-sm leading-6 text-muted">This permanently removes the {kind} and its saved journal entry. This action cannot be undone.</p></div>
+          <button type="button" onClick={() => setOpen(false)} disabled={pending} className="focus-ring ml-auto text-muted hover:text-foreground" aria-label="Close"><X size={18} /></button>
         </div>
         {error && <p role="alert" className="px-5 pb-3 text-sm text-loss">{error}</p>}
         <div className="flex justify-end gap-2 border-t border-line p-4">

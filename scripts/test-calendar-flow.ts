@@ -15,7 +15,7 @@ async function main() {
   async function request<T>(path: string, userId?: string, method = "GET", body?: unknown): Promise<T> {
     const response = await fetch(`${baseUrl}${path}`, {
       method, cache: "no-store", redirect: "manual",
-      headers: { ...(userId ? { Cookie: `${sessionCookieName}=${await createSessionToken(userId)}` } : {}), ...(body ? { "Content-Type": "application/json" } : {}) },
+      headers: { ...(userId ? { Cookie: `${sessionCookieName}=${await createSessionToken(userId, "test-account-no-login")}` } : {}), ...(body ? { "Content-Type": "application/json" } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
     const json = await response.json();
@@ -64,7 +64,7 @@ async function main() {
     assert.equal(daily.length, 4);
     assert.ok(daily.every(trade => trade.date === "2026-10-05" && trade.actualR !== 9));
     assert.equal((await request<Trade[]>("/api/trades?date=2026-10-05&result=Loss", a)).length, 1);
-    const foreign = await fetch(`${baseUrl}/api/trades/${one.id}`, { headers: { Cookie: `${sessionCookieName}=${await createSessionToken(b)}` } });
+    const foreign = await fetch(`${baseUrl}/api/trades/${one.id}`, { headers: { Cookie: `${sessionCookieName}=${await createSessionToken(b, "test-account-no-login")}` } });
     assert.equal(foreign.status, 404);
     await request(`/api/trades/${one.id}`, a, "PATCH", { profitLoss: 50 });
     assert.equal((await calendar(a)).days[0].netR, 2.7);
@@ -76,7 +76,7 @@ async function main() {
     assert.equal((await calendar(a, "2026-11")).days[0].netR, 2);
     await request(`/api/trades/${one.id}`, a, "DELETE");
     assert.equal((await calendar(a, "2026-11")).summary.totalTrades, 0);
-    const cookie = `${sessionCookieName}=${await createSessionToken(a)}`;
+    const cookie = `${sessionCookieName}=${await createSessionToken(a, "test-account-no-login")}`;
     const html = await (await fetch(`${baseUrl}/trades?date=2026-10-05`, { headers: { Cookie: cookie } })).text();
     assert.ok(html.includes("Back to Calendar"));
     assert.ok(html.includes("/calendar?month=2026-10"));

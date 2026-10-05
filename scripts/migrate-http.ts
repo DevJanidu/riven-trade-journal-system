@@ -8,6 +8,9 @@ if (!databaseUrl) throw new Error("DATABASE_URL is missing");
 const sql = neon(databaseUrl);
 
 const statements = [
+  `CREATE TABLE IF NOT EXISTS "auth_challenges" ("id" uuid PRIMARY KEY NOT NULL, "email" text NOT NULL, "purpose" text NOT NULL, "code_hash" text NOT NULL, "payload" jsonb NOT NULL, "attempts" integer DEFAULT 0 NOT NULL, "delivered" boolean DEFAULT false NOT NULL, "verified_at" timestamptz, "expires_at" timestamptz NOT NULL, "used_at" timestamptz, "created_at" timestamptz DEFAULT now() NOT NULL)`,
+  `ALTER TABLE "auth_challenges" ADD COLUMN IF NOT EXISTS "verified_at" timestamptz`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "auth_challenges_email_purpose_idx" ON "auth_challenges" ("email", "purpose")`,
   `CREATE TABLE IF NOT EXISTS "trade_drafts" ("id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL, "date" date NOT NULL, "data" jsonb NOT NULL, "created_at" timestamptz DEFAULT now() NOT NULL, "updated_at" timestamptz DEFAULT now() NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS "trade_drafts_date_idx" ON "trade_drafts" ("date")`,
   `CREATE TABLE IF NOT EXISTS "setup_types" ("id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL, "name" text NOT NULL, "rules" jsonb DEFAULT '[]'::jsonb NOT NULL, "avoid_rules" jsonb DEFAULT '[]'::jsonb NOT NULL, "created_at" timestamptz DEFAULT now() NOT NULL, "updated_at" timestamptz DEFAULT now() NOT NULL)`,

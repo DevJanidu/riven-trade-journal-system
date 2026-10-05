@@ -79,7 +79,7 @@ export function TradesExplorer({ initialTrades, initialDrafts, month, initialFil
     {error ? <div role="alert" className="border border-loss/40 bg-loss/5 p-5 text-sm text-loss">{error}</div>
       : loading ? <div className="flex min-h-52 items-center justify-center gap-2 border border-line bg-surface p-5 text-sm text-muted"><Spinner label="Loading trades" />Loading trades…</div>
         : shownCount ? <div className="border border-line bg-surface">
-          <div className="flex items-center justify-between border-b border-line px-5 py-3.5"><p className="text-sm font-medium text-white">All trades</p><p className="text-xs text-muted">{shownCount} shown{shownDrafts.length ? ` · ${shownDrafts.length} draft${shownDrafts.length === 1 ? "" : "s"}` : ""}</p></div>
+          <div className="flex items-center justify-between border-b border-line px-5 py-3.5"><p className="text-sm font-medium text-foreground">All trades</p><p className="text-xs text-muted">{shownCount} shown{shownDrafts.length ? ` · ${shownDrafts.length} draft${shownDrafts.length === 1 ? "" : "s"}` : ""}</p></div>
           <TradeTable trades={trades} drafts={shownDrafts} page={page} pageSize={PAGE_SIZE} onPageChange={setPage} onDeleted={onDeleted} />
         </div> : filtered ? <div className="grid min-h-52 place-items-center border border-dashed border-line bg-surface p-8 text-center text-sm text-muted">No trades match these filters.</div> : <EmptyState />}
   </>;

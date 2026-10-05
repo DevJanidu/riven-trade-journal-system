@@ -259,9 +259,9 @@ export function TradeForm({ initialTrade, initialDraft }: { initialTrade?: Trade
       </div>
     </FormSection>
 
-    <FormSection title="Pre-trade checklist" description="Only take the trade when the setup is objectively ready." headerRight={<div className={cn("flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-semibold", strategyGrade ? "border-accent/40 bg-accent/10 text-accent" : "border-[#263443] bg-[#0b1219] text-muted")}><span>{checklistPercent}% complete</span><span className="text-white/30">&middot;</span><span>{strategyGrade ?? "Not qualified"}</span></div>}>
-      <div className="grid min-w-0 items-stretch gap-5 md:grid-cols-2"><Field label="Setup rules"><div className="flex h-full min-h-32 min-w-0 flex-col space-y-2 overflow-y-auto rounded-[9px] border border-[#263443] bg-[#0b1219] p-3">{activeSetup?.rules.length ? activeSetup.rules.map(rule => <label key={rule} className="flex min-w-0 items-start gap-2 text-sm text-[#cbd3d8]"><input type="checkbox" checked={checkedRules.includes(rule)} onChange={event => setCheckedRules(current => event.target.checked ? [...current, rule] : current.filter(item => item !== rule))} className="mt-0.5 shrink-0 accent-[#45c6bb]" /><span className="break-words">{rule}</span></label>) : <span className="text-xs text-muted">No rules added for this setup yet. Add them in Setup Types.</span>}</div></Field>
-        <Field label="Do not take this trade if..."><div className="flex h-full min-h-32 min-w-0 flex-col space-y-2 overflow-y-auto rounded-[9px] border border-[#263443] bg-[#0b1219] p-3">{activeSetup?.avoidRules.length ? activeSetup.avoidRules.map(rule => <p key={rule} className="flex items-start gap-1.5 break-words text-sm text-loss"><AlertTriangle size={14} className="mt-0.5" aria-hidden="true" /><span>{rule}</span></p>) : <span className="text-xs text-muted">No avoid conditions added for this setup yet.</span>}</div></Field>
+    <FormSection title="Pre-trade checklist" description="Only take the trade when the setup is objectively ready." headerRight={<div className={cn("flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-semibold", strategyGrade ? "border-accent/40 bg-accent/10 text-accent" : "border-line bg-background-secondary text-muted")}><span>{checklistPercent}% complete</span><span className="text-foreground/30">&middot;</span><span>{strategyGrade ?? "Not qualified"}</span></div>}>
+      <div className="grid min-w-0 items-stretch gap-5 md:grid-cols-2"><Field label="Setup rules"><div className="flex h-full min-h-32 min-w-0 flex-col space-y-2 overflow-y-auto rounded-[9px] border border-line bg-background-secondary p-3">{activeSetup?.rules.length ? activeSetup.rules.map(rule => <label key={rule} className="flex min-w-0 items-start gap-2 text-sm text-secondary"><input type="checkbox" checked={checkedRules.includes(rule)} onChange={event => setCheckedRules(current => event.target.checked ? [...current, rule] : current.filter(item => item !== rule))} className="mt-0.5 shrink-0 accent-accent" /><span className="break-words">{rule}</span></label>) : <span className="text-xs text-muted">No rules added for this setup yet. Add them in Setup Types.</span>}</div></Field>
+        <Field label="Do not take this trade if..."><div className="flex h-full min-h-32 min-w-0 flex-col space-y-2 overflow-y-auto rounded-[9px] border border-line bg-background-secondary p-3">{activeSetup?.avoidRules.length ? activeSetup.avoidRules.map(rule => <p key={rule} className="flex items-start gap-1.5 break-words text-sm text-loss"><AlertTriangle size={14} className="mt-0.5" aria-hidden="true" /><span>{rule}</span></p>) : <span className="text-xs text-muted">No avoid conditions added for this setup yet.</span>}</div></Field>
       </div>
     </FormSection>
 
@@ -299,11 +299,11 @@ export function TradeForm({ initialTrade, initialDraft }: { initialTrade?: Trade
 }
 
 function FormSection({ title, description, headerRight, children }: { title: string; description: string; headerRight?: ReactNode; children: ReactNode }) {
-  return <section className="rounded-[9px] border border-line bg-surface"><div className="flex items-start justify-between gap-4 rounded-t-[9px] border-b border-line px-5 py-4"><div><h2 className="font-semibold text-white">{title}</h2><p className="mt-1 text-xs text-muted">{description}</p></div>{headerRight}</div><div className="p-5">{children}</div></section>;
+  return <section className="rounded-[9px] border border-line bg-surface"><div className="flex items-start justify-between gap-4 rounded-t-[9px] border-b border-line px-5 py-4"><div><h2 className="font-semibold text-foreground">{title}</h2><p className="mt-1 text-xs text-muted">{description}</p></div>{headerRight}</div><div className="p-5">{children}</div></section>;
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
-  return <label className="flex h-full min-h-0 flex-col"><span className="mb-2 block shrink-0 text-sm font-medium text-[#cbd3d8]">{label}</span>{children}</label>;
+  return <label className="flex h-full min-h-0 flex-col"><span className="mb-2 block shrink-0 text-sm font-medium text-secondary">{label}</span>{children}</label>;
 }
 
 function TextArea({ name, label, defaultValue }: { name: string; label: string; defaultValue?: string }) {
@@ -311,7 +311,7 @@ function TextArea({ name, label, defaultValue }: { name: string; label: string; 
 }
 
 function Readout({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "positive" | "negative" }) {
-  return <div><p className="mb-2 text-sm font-medium text-[#cbd3d8]">{label}</p><div className={cn("flex h-[42px] items-center rounded-[9px] border border-[#263443] bg-[#0b1219] px-[13px] text-sm font-medium tabular-nums", tone === "positive" && "text-profit", tone === "negative" && "text-loss", tone === "default" && "text-white")}>{value}</div></div>;
+  return <div><p className="mb-2 text-sm font-medium text-secondary">{label}</p><div className={cn("flex h-[42px] items-center rounded-[9px] border border-line bg-background-secondary px-[13px] text-sm font-medium tabular-nums", tone === "positive" && "text-profit", tone === "negative" && "text-loss", tone === "default" && "text-foreground")}>{value}</div></div>;
 }
 
 function Segmented({ name, options, defaultValue, onChange, tone = "default" }: { name: string; options: readonly string[]; defaultValue: string; onChange?: (value: string) => void; tone?: "default" | "direction" }) {

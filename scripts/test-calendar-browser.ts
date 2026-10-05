@@ -15,7 +15,7 @@ const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function main() {
   const [user] = await sql`INSERT INTO users (name, email, password_hash) VALUES ('Calendar browser test', ${`calendar-browser-${crypto.randomUUID()}@example.invalid`}, 'test-account-no-login') RETURNING id`;
-  const cookie = `${sessionCookieName}=${await createSessionToken(user.id)}`;
+  const cookie = `${sessionCookieName}=${await createSessionToken(user.id, "test-account-no-login")}`;
   const profile = await mkdtemp(path.join(tmpdir(), "tradezilla-calendar-"));
   const port = 23000 + Math.floor(Math.random() * 2000);
   const chrome = spawn("C:/Program Files/Google/Chrome/Application/chrome.exe", ["--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "about:blank"], { windowsHide: true, stdio: "ignore" });

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   applicationName: "My Journal",
   title: { default: "My Journal", template: "%s · My Journal" },
   description: "My XAUUSD trading journal for recording, reviewing, and improving.",
-  icons: { icon: "/icon.png", apple: "/icon.png" },
+  icons: { icon: "/logo.png", apple: "/logo.png" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

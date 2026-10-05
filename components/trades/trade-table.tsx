@@ -40,20 +40,20 @@ export function TradeTable({ trades, drafts = [], compact = false, onDeleted, pa
 function Actions({ id, month, kind, onDeleted }: { id: string; month: string; kind: "trade" | "draft"; onDeleted?: Props["onDeleted"] }) {
   const href = kind === "draft" ? `/journal?draft=${id}` : `/trades/${id}/edit`;
   return <div className="flex items-center justify-end gap-2">
-    <Link href={href} aria-label={`Edit ${kind}`} className="focus-ring inline-flex h-8 items-center gap-1.5 rounded-md border border-line bg-surface-raised px-2.5 text-xs font-semibold text-foreground hover:border-[#34434f] hover:bg-[#15212b]"><Pencil size={13} />Edit</Link>
+    <Link href={href} aria-label={`Edit ${kind}`} className="focus-ring inline-flex h-8 items-center gap-1.5 rounded-md border border-line bg-surface-raised px-2.5 text-xs font-semibold text-foreground hover:border-line-strong hover:bg-surface-secondary"><Pencil size={13} />Edit</Link>
     <DeleteConfirmation tradeId={id} month={month} kind={kind} compact onDeleted={onDeleted ? deletedId => onDeleted(deletedId, kind) : undefined} />
   </div>;
 }
 
 function TradeRow({ trade, compact, onDeleted }: { trade: Trade; compact: boolean; onDeleted?: Props["onDeleted"] }) {
   return <tr className="group border-b border-line/70 transition-colors last:border-0 hover:bg-foreground/[.025]">
-    <td className="p-0"><Link href={`/trades/${trade.id}`} className="flex items-center gap-2 px-5 py-4 font-medium text-white"><span>{formatTradeDate(trade.date)}</span><ArrowUpRight size={13} className="text-muted opacity-0 transition-opacity group-hover:opacity-100" /></Link></td>
+    <td className="p-0"><Link href={`/trades/${trade.id}`} className="flex items-center gap-2 px-5 py-4 font-medium text-foreground"><span>{formatTradeDate(trade.date)}</span><ArrowUpRight size={13} className="text-muted opacity-0 transition-opacity group-hover:opacity-100" /></Link></td>
     <td className="px-3 py-4"><SessionBadge session={trade.session} /></td>
     <td className="px-3 py-4"><DirectionBadge direction={trade.direction} /></td>
     <td className="px-3 py-4 font-medium text-setup">{trade.setup}</td>
     {!compact && <td className="px-3 py-4 font-mono text-muted">{trade.entry.toFixed(2)}</td>}
     <td className="px-3 py-4"><ResultBadge result={trade.result} profitBooked={trade.profitBooked} breakEvenAfterProfit={trade.breakEvenAfterProfit} /></td>
-    <td className={trade.actualR > 0 ? "px-3 py-4 text-right font-mono font-medium text-profit" : "px-3 py-4 text-right font-mono font-medium text-loss"}>{formatR(trade.actualR)}</td>
+    <td className={trade.actualR > 0 ? "px-3 py-4 text-right font-mono font-medium text-profit" : trade.actualR < 0 ? "px-3 py-4 text-right font-mono font-medium text-loss" : "px-3 py-4 text-right font-mono font-medium text-secondary"}>{formatR(trade.actualR)}</td>
     <td className="px-5 py-2"><Actions id={trade.id} month={trade.date.slice(0, 7)} kind="trade" onDeleted={onDeleted} /></td>
   </tr>;
 }
@@ -61,7 +61,7 @@ function TradeRow({ trade, compact, onDeleted }: { trade: Trade; compact: boolea
 function DraftRow({ draft, compact, onDeleted }: { draft: TradeDraft; compact: boolean; onDeleted?: Props["onDeleted"] }) {
   const entry = draft.data.entry ? Number(draft.data.entry) : NaN;
   return <tr className="border-b border-line/70 bg-gold/[.025] transition-colors last:border-0 hover:bg-gold/[.05]">
-    <td className="px-5 py-4 font-medium text-white">{formatTradeDate(draft.date)}</td>
+    <td className="px-5 py-4 font-medium text-foreground">{formatTradeDate(draft.date)}</td>
     <td className="px-3 py-4"><SessionBadge session={draft.data.session} /></td>
     <td className="px-3 py-4"><DirectionBadge direction={draft.data.direction} /></td>
     <td className="px-3 py-4 font-medium text-setup">{draft.data.setup || "—"}</td>

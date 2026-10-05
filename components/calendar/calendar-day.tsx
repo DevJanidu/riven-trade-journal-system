@@ -16,7 +16,7 @@ export function CalendarDay({ date, day, today, mobile = false }: { date: string
   const outcomes = [day.wins ? `${day.wins}W` : "", day.losses ? `${day.losses}L` : "", day.breakEvens ? `${day.breakEvens}BE` : ""].filter(Boolean).join(" · ");
   return <Link href={`/trades?date=${date}`} prefetch={false}
     aria-label={`${formatTradeDate(date, "long")}, ${day.tradeCount} trades, ${day.wins} wins, ${day.losses} losses, ${day.breakEvens} break even, ${day.netR > 0 ? "positive" : day.netR < 0 ? "negative" : "zero"} ${Math.abs(day.netR)} R. View trades.`}
-    className={cn("focus-ring group block transition-colors hover:bg-foreground/[.035]", mobile ? "rounded-lg border border-line bg-surface p-4 hover:border-accent/30" : "min-h-0 border-b border-r border-line p-1.5 [@media(max-height:700px)]:p-1")}>
+    className={cn("calendar-cell focus-ring group block transition-colors hover:bg-foreground/[.035]", tone === "profit" ? "calendar-profit" : tone === "loss" ? "calendar-loss" : "calendar-neutral", mobile ? "rounded-lg border border-line bg-surface p-4 hover:border-accent/30" : "min-h-0 border-b border-r border-line p-1.5 [@media(max-height:700px)]:p-1")}>
     {!mobile ? <>
       <div className="flex items-center justify-between gap-1">{number}<p className={cn("rounded px-1 font-mono text-base font-semibold leading-6 tabular-nums [@media(max-height:700px)]:text-sm [@media(max-height:700px)]:leading-5", rClass)}>{formatR(day.netR)}</p></div>
       <p className="whitespace-nowrap text-[11px] leading-4 text-foreground/80 [@media(max-height:700px)]:text-[10px] [@media(max-height:700px)]:leading-3">{outcomes.replaceAll(" · ", "·")}</p>

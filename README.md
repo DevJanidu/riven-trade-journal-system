@@ -42,6 +42,14 @@ The seed skips October 2026 if that month already contains trades. It is never r
 
 Open [http://localhost:3000](http://localhost:3000). `/` redirects to `/dashboard`.
 
+## Account access
+
+Registration requires an approval code sent through Resend to `APP_OWNER_EMAIL` (default: `janidudev@gmail.com`). The owner shares the code only with an approved applicant. No user is created before verification. Codes expire after five minutes, permit five attempts, and can be requested once per minute per email. A replacement code invalidates the previous request.
+
+Password recovery at `/forgot-password` sends a five-minute OTP to the registered account email through the same Resend service. Old password-reset links are replaced by this flow. Email delivery must succeed before a code becomes usable; codes are never exposed in development responses or logs. Resetting a password invalidates previous login sessions. Existing sessions created before this update require signing in again.
+
+Configure server-only `RESEND_API_KEY`, `APP_OWNER_EMAIL`, and `EMAIL_FROM=My Journal <noreply@journal.janidudev.com>` in both development and production. Verify the sending domain in Resend. Set `APP_URL=https://journal.janidudev.com` and a long random `AUTH_SECRET` in production. Apply `drizzle/0005_auth_otp.sql` with `npm run db:migrate` before using these flows. For an existing installation needing only the new OTP table, run `npm run db:migrate:otp`.
+
 ## API
 
 All responses use `{ "success": true, "data": ... }` or `{ "success": false, "error": "..." }`. Validation responses also include `fieldErrors`.
@@ -63,7 +71,7 @@ All responses use `{ "success": true, "data": ... }` or `{ "success": false, "er
 
 The API enforces XAUUSD, valid trade geometry, positive prices/risk, allowed enums, and HTTP(S) URLs. The server derives planned R:R, actual R, and result from price levels, risk, and P/L. Trade dates are PostgreSQL `date` values; month filters use inclusive start and exclusive next-month boundaries, without timezone conversion. Break-even trades are excluded from the win-rate denominator. PostgreSQL numerics are normalized before analytics.
 
-The journal form sends trade data to `POST /api/trades`, then opens the created trade. Edit and delete use `PATCH` and `DELETE`, respectively. Dashboard, trade list, and review pages load database data. There is no authentication or broker connection, so deploy only in an appropriately private environment until access control is added.
+The journal form sends trade data to `POST /api/trades`, then opens the created trade. Edit and delete use `PATCH` and `DELETE`, respectively. Dashboard, trade list, and review pages load database data. Journal pages and APIs require a signed-in user and scope data to that account. There is no broker connection.
 
 Screenshot images upload to Neon Object Storage when a trade is saved. PostgreSQL stores object keys in its screenshot fields; image bytes are never stored in the database. Replaced or removed images are deleted from storage.
 
@@ -79,6 +87,8 @@ npm run lint
 npm run test:unit
 npm run build
 ```
+
+`npm run test:auth:live` checks OTP behavior against the development database with email delivery intercepted. It creates temporary test accounts and challenges and removes them afterward.
 
 Without `DATABASE_URL`, schema generation and static checks can still run, but the live data pages and valid database API requests cannot load data. The API returns 503 for missing database configuration.
 # riven-trade-journal-system

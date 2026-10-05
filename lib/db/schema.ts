@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, date, index, jsonb, numeric, pgEnum, pgTable, text, timestamp, uuid, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, check, date, index, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, uuid, uniqueIndex } from "drizzle-orm/pg-core";
 import { directions, emotions, results, sessions } from "@/types/trade";
 
 export const sessionEnum = pgEnum("trade_session", sessions);
@@ -24,6 +24,20 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   usedAt: timestamp("used_at", { withTimezone: true, mode: "date" }),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
 }, table => [uniqueIndex("password_reset_tokens_hash_idx").on(table.tokenHash), index("password_reset_tokens_user_idx").on(table.userId)]);
+
+export const authChallenges = pgTable("auth_challenges", {
+  id: uuid("id").primaryKey(),
+  email: text("email").notNull(),
+  purpose: text("purpose").notNull(),
+  codeHash: text("code_hash").notNull(),
+  payload: jsonb("payload").$type<{ name?: string; passwordHash?: string; userId?: string }>().notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  delivered: boolean("delivered").default(false).notNull(),
+  verifiedAt: timestamp("verified_at", { withTimezone: true, mode: "date" }),
+  expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true, mode: "date" }),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+}, table => [uniqueIndex("auth_challenges_email_purpose_idx").on(table.email, table.purpose)]);
 
 export const setupTypes = pgTable("setup_types", {
   id: uuid("id").defaultRandom().primaryKey(),

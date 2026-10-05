@@ -1,7 +1,7 @@
 export const sessionCookieName = "tradezilla_session";
 export const sessionMaxAge = 60 * 60 * 24 * 30;
 
-type SessionPayload = { userId: string; expiresAt: number };
+type SessionPayload = { userId: string; expiresAt: number; passwordVersion: string };
 
 function encode(value: string | Uint8Array) {
   const bytes = typeof value === "string" ? new TextEncoder().encode(value) : value;
@@ -34,8 +34,12 @@ async function signatureIsValid(payload: string, supplied: string) {
   } catch { return false; }
 }
 
-export async function createSessionToken(userId: string) {
-  const payload = encode(JSON.stringify({ userId, expiresAt: Date.now() + sessionMaxAge * 1000 } satisfies SessionPayload));
+export async function passwordVersion(passwordHash: string) {
+  return encode(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(passwordHash))));
+}
+
+export async function createSessionToken(userId: string, passwordHash: string) {
+  const payload = encode(JSON.stringify({ userId, passwordVersion: await passwordVersion(passwordHash), expiresAt: Date.now() + sessionMaxAge * 1000 } satisfies SessionPayload));
   return `${payload}.${await signature(payload)}`;
 }
 
@@ -45,6 +49,6 @@ export async function verifySessionToken(token?: string | null): Promise<Session
   if (!payload || !supplied || extra || !await signatureIsValid(payload, supplied)) return null;
   try {
     const parsed = JSON.parse(new TextDecoder().decode(decode(payload))) as SessionPayload;
-    return typeof parsed.userId === "string" && parsed.expiresAt > Date.now() ? parsed : null;
+    return typeof parsed.userId === "string" && typeof parsed.passwordVersion === "string" && parsed.passwordVersion.length === 43 && parsed.expiresAt > Date.now() ? parsed : null;
   } catch { return null; }
 }

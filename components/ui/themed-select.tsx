@@ -76,7 +76,7 @@ export function ThemedSelect({ label, options, name, value, defaultValue, onValu
   }
 
   const inline = variant === "inline";
-  const labelClass = inline ? "text-xs text-muted" : variant === "filter" ? "mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-muted" : "mb-2 block text-sm font-medium text-[#cbd3d8]";
+  const labelClass = inline ? "text-xs text-muted" : variant === "filter" ? "mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-muted" : "mb-2 block text-sm font-medium text-secondary";
 
   return <div ref={containerRef} className={`relative min-w-0 ${inline ? "flex items-center gap-2" : ""}`}>
     <span className={labelClass}>{label}</span>
@@ -96,7 +96,7 @@ export function ThemedSelect({ label, options, name, value, defaultValue, onValu
     >
       <span className={`truncate ${tone === "setup" ? "font-medium text-setup" : ""}`}>{selected?.label}</span><ChevronDown size={16} className={`shrink-0 text-muted transition-transform ${open ? "rotate-180 text-accent" : ""}`} />
     </button>
-    {open && <div id={listboxId} role="listbox" aria-label={label} className={`absolute top-[calc(100%+8px)] z-50 max-h-64 overflow-y-auto rounded-[10px] border border-[#314253] bg-[#111922] p-1.5 shadow-[0_18px_40px_rgba(0,0,0,.32)] ${inline ? "right-0 w-48" : "left-0 w-full min-w-48"}`}>
+    {open && <div id={listboxId} role="listbox" aria-label={label} className={`theme-popover absolute top-[calc(100%+8px)] z-50 max-h-64 overflow-y-auto rounded-[10px] border border-line-strong bg-surface-elevated p-1.5 shadow-[0_18px_40px_rgba(0,0,0,.32)] ${inline ? "right-0 w-48" : "left-0 w-full min-w-48"}`}>
       {items.map((item, index) => <button
         id={`${listboxId}-option-${index}`}
         type="button"
@@ -105,7 +105,7 @@ export function ThemedSelect({ label, options, name, value, defaultValue, onValu
         key={item.value}
         onMouseEnter={() => setActiveIndex(index)}
         onClick={() => choose(item.value)}
-        className={`focus-ring flex min-h-9 w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-xs transition-colors ${item.value === selectedValue ? tone === "setup" ? "bg-setup/10 font-medium text-setup" : "bg-accent/10 font-medium text-accent" : index === activeIndex ? "bg-[#22313e] text-white" : "text-[#d5dce3] hover:bg-[#22313e]"}`}
+        className={`focus-ring flex min-h-9 w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-xs transition-colors ${item.value === selectedValue ? tone === "setup" ? "bg-setup/10 font-medium text-setup" : "bg-accent/10 font-medium text-accent" : index === activeIndex ? "bg-surface-secondary text-foreground" : "text-secondary hover:bg-surface-secondary"}`}
       >{item.label}{item.value === selectedValue && <Check size={14} className="shrink-0" />}</button>)}
     </div>}
   </div>;
