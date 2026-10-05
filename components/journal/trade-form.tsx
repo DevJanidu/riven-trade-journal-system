@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/calendar-picker";
 import { ThemedSelect } from "@/components/ui/themed-select";
 import { ScreenshotUpload } from "./screenshot-upload";
-import { directions, emotions, sessions, setups, type Trade } from "@/types/trade";
-import { cn } from "@/lib/utils";
+import { directions, emotions, results, sessions, setups, type Trade } from "@/types/trade";
+import { cn, formatRR } from "@/lib/utils";
 import type { ApiResponse } from "@/types/trade";
 import { calculatePlannedRR } from "@/lib/trading/calculations";
 import { buildTradePatch } from "@/lib/trading/trade-patch";
@@ -44,6 +44,18 @@ export function TradeForm({ initialTrade, initialDraft }: { initialTrade?: Trade
     profitLoss: initialTrade?.profitLoss.toString() ?? draft?.profitLoss ?? "",
     profitBooked: initialTrade?.profitBooked?.toString() ?? draft?.profitBooked ?? "0",
   });
+  const [breakEvenAfterProfit, setBreakEvenAfterProfit] = useState(() => {
+    const enabled = initialTrade?.breakEvenAfterProfit ?? draft?.breakEvenAfterProfit ?? false;
+    const profitLoss = initialTrade?.profitLoss.toString() ?? draft?.profitLoss ?? "";
+    const profitBooked = initialTrade?.profitBooked?.toString() ?? draft?.profitBooked ?? "0";
+    return enabled && profitLoss !== "" && Number(profitLoss) === 0 && Number(profitBooked) > 0;
+  });
+  const [selectedResult, setSelectedResult] = useState<Trade["result"]>(() => {
+    if (initialTrade?.result) return initialTrade.result;
+    const profitLoss = draft?.profitLoss ?? "";
+    if (profitLoss === "") return "Break Even";
+    return Number(profitLoss) > 0 ? "Win" : Number(profitLoss) < 0 ? "Loss" : "Break Even";
+  });
 
   const plannedRR = useMemo(() => {
     const entry = Number(numbers.entry);
@@ -52,11 +64,45 @@ export function TradeForm({ initialTrade, initialDraft }: { initialTrade?: Trade
     return entry && stop && target ? calculatePlannedRR(entry, stop, target, direction) : 0;
   }, [numbers, direction]);
   const actualR = Number(numbers.risk) > 0 && numbers.profitLoss !== "" ? Number(numbers.profitLoss) / Number(numbers.risk) : 0;
-  const result = actualR > 0 ? "Win" : actualR < 0 ? "Loss" : "Break Even";
-  const breakEvenAfterProfit = initialTrade?.breakEvenAfterProfit ?? draft?.breakEvenAfterProfit;
+  const canMarkProfitBookedBreakEven = numbers.profitLoss !== "" && Number(numbers.profitLoss) === 0 && Number(numbers.profitBooked) > 0;
+  const normalizedBreakEvenAfterProfit = breakEvenAfterProfit && canMarkProfitBookedBreakEven;
 
   function setNumber(key: keyof Numbers, value: string) {
+    if (key === "profitLoss" && value !== "") {
+      const profitLoss = Number(value);
+      setSelectedResult(profitLoss > 0 ? "Win" : profitLoss < 0 ? "Loss" : "Break Even");
+    }
+    if ((key === "profitLoss" && value !== "" && Number(value) !== 0) || (key === "profitBooked" && Number(value) <= 0)) setBreakEvenAfterProfit(false);
+    setFormError("");
+    setFieldErrors({});
     setNumbers(current => ({ ...current, [key]: value }));
+  }
+
+  function changeResult(value: string) {
+    const nextResult = value as Trade["result"];
+    setSelectedResult(nextResult);
+    setFormError("");
+    setFieldErrors({});
+    if (nextResult === "Break Even") {
+      setNumbers(current => ({ ...current, profitLoss: "0" }));
+      setBreakEvenAfterProfit(false);
+      return;
+    }
+    const profitLoss = Number(numbers.profitLoss);
+    const signMatches = nextResult === "Win" ? numbers.profitLoss !== "" && profitLoss > 0 : numbers.profitLoss !== "" && profitLoss < 0;
+    if (!signMatches) setNumbers(current => ({ ...current, profitLoss: "" }));
+    setBreakEvenAfterProfit(false);
+  }
+
+  function changeBreakEvenAfterProfit(value: string) {
+    if (value === "Yes" && !canMarkProfitBookedBreakEven) {
+      setBreakEvenAfterProfit(false);
+      setFormError("To mark profit-booked break even, enter 0 for final P/L and a booked-profit amount greater than 0.");
+      return;
+    }
+    setBreakEvenAfterProfit(value === "Yes");
+    setFormError("");
+    setFieldErrors({});
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -109,7 +155,7 @@ export function TradeForm({ initialTrade, initialDraft }: { initialTrade?: Trade
         date: value("date"), session: value("session") as DraftInput["session"], direction,
         entry: numbers.entry, stopLoss: numbers.stopLoss, takeProfit: numbers.takeProfit,
         riskAmount: numbers.risk, profitLoss: numbers.profitLoss, profitBooked: numbers.profitBooked,
-        breakEvenAfterProfit: value("breakEvenAfterProfit") === "Yes", setup: selectedSetup,
+        breakEvenAfterProfit: normalizedBreakEvenAfterProfit, setup: selectedSetup,
         setupChecklist: checkedRules, setupAvoidChecklist: draft?.setupAvoidChecklist ?? [],
         psychologyReady: value("psychologyReady") === "Yes", psychologyAnswer: value("psychologyAnswer"),
         tradingViewUrl: value("tradingViewUrl"),
@@ -136,8 +182,8 @@ export function TradeForm({ initialTrade, initialDraft }: { initialTrade?: Trade
       const payload = {
         instrument: "XAUUSD", date: value("date"), session: value("session"), direction: value("direction"),
         entry: Number(numbers.entry), stopLoss: Number(numbers.stopLoss), takeProfit: Number(numbers.takeProfit),
-        riskAmount: Number(numbers.risk), profitLoss: Number(numbers.profitLoss), profitBooked: Number(numbers.profitBooked), breakEvenAfterProfit: value("breakEvenAfterProfit") === "Yes", setup: selectedSetup,
-        result: Number(numbers.profitLoss) === 0 ? (value("result") || "Break Even") : undefined,
+        riskAmount: Number(numbers.risk), profitLoss: Number(numbers.profitLoss), profitBooked: Number(numbers.profitBooked), breakEvenAfterProfit: normalizedBreakEvenAfterProfit, setup: selectedSetup,
+        result: selectedResult,
         setupGrade: strategyGrade, setupChecklist: checkedRules, setupAvoidChecklist: initialTrade?.setupAvoidChecklist ?? draft?.setupAvoidChecklist ?? [],
         psychologyReady: value("psychologyReady") === "Yes", psychologyAnswer: value("psychologyAnswer"),
         tradingViewUrl: value("tradingViewUrl") || null,
@@ -196,12 +242,13 @@ export function TradeForm({ initialTrade, initialDraft }: { initialTrade?: Trade
 
     <FormSection title="Trade Result" description="R-multiples are calculated from your price levels, risk, and P/L.">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Readout label="Planned R:R" value={plannedRR ? `1:${plannedRR.toFixed(2)}` : "\u2014"} />
+        <Readout label="Planned R:R" value={plannedRR ? formatRR(plannedRR) : "\u2014"} />
         <Field label="Profit / Loss ($)"><input name="profitLoss" type="number" step="0.01" required value={numbers.profitLoss} onChange={event => setNumber("profitLoss", event.target.value)} className="form-input" placeholder="50.00" /></Field>
         <Field label="Profit booked before breakeven"><input name="profitBooked" type="number" min="0" step="0.01" value={numbers.profitBooked} onChange={event => setNumber("profitBooked", event.target.value)} className={cn("form-input", Number(numbers.profitBooked) > 0 && Number(numbers.profitLoss) === 0 && "border-accent/60 bg-accent/10 text-accent")} placeholder="0.00" />{Number(numbers.profitBooked) > 0 && Number(numbers.profitLoss) === 0 && <span className="mt-1.5 flex items-center gap-1 text-xs font-medium text-accent"><Check size={13} aria-hidden="true" />Profit protected: ${Number(numbers.profitBooked).toFixed(2)} booked</span>}</Field>
-        <ThemedSelect name="breakEvenAfterProfit" label="Break even after profit booking?" options={["No", "Yes"]} defaultValue={breakEvenAfterProfit ? "Yes" : "No"} />
+        <ThemedSelect name="breakEvenAfterProfit" label="Break even after profit booking?" options={["No", "Yes"]} value={normalizedBreakEvenAfterProfit ? "Yes" : "No"} onValueChange={changeBreakEvenAfterProfit} />
         <Readout label="Actual Result" value={`${actualR > 0 ? "+" : ""}${actualR.toFixed(2)}R`} tone={actualR > 0 ? "positive" : actualR < 0 ? "negative" : "default"} />
-        {numbers.profitLoss !== "" && Number(numbers.profitLoss) === 0 ? <ThemedSelect name="result" label="Manual result for zero P/L" options={["Break Even"]} defaultValue={initialTrade?.result ?? "Break Even"} /> : <Readout label="Result" value={result === "Break Even" && breakEvenAfterProfit ? "Break Even \u00b7 Profit Booked" : result} tone={result === "Win" ? "positive" : result === "Loss" ? "negative" : "default"} />}
+        <ThemedSelect name="result" label="Result" options={results} value={selectedResult} onValueChange={changeResult} />
+        {selectedResult === "Break Even" && <Readout label="Break-even type" value={normalizedBreakEvenAfterProfit ? "Profit Booked" : "Regular Break Even"} tone={normalizedBreakEvenAfterProfit ? "positive" : "default"} />}
       </div>
     </FormSection>
 

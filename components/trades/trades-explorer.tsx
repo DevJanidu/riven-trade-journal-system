@@ -11,10 +11,10 @@ import { TradeTable } from "./trade-table";
 import { Spinner } from "@/components/ui/spinner";
 
 type FilterKey = "session" | "setup" | "result" | "direction";
-type Props = { initialTrades: Trade[]; initialDrafts: TradeDraft[]; month: string; initialFilters: TradeFilters };
+type Props = { initialTrades: Trade[]; initialDrafts: TradeDraft[]; month: string; initialFilters: TradeFilters; onItemDeleted?: (id: string, kind: "trade" | "draft") => void };
 const PAGE_SIZE = 10;
 
-export function TradesExplorer({ initialTrades, initialDrafts, month, initialFilters }: Props) {
+export function TradesExplorer({ initialTrades, initialDrafts, month, initialFilters, onItemDeleted }: Props) {
   const router = useRouter();
   const [filters, setFilters] = useState<TradeFilters>(initialFilters);
   const [trades, setTrades] = useState(initialTrades);
@@ -25,9 +25,11 @@ export function TradesExplorer({ initialTrades, initialDrafts, month, initialFil
 
   useEffect(() => {
     const query = new URLSearchParams({ month });
+    if (filters.date) query.set("date", filters.date);
     for (const key of ["session", "setup", "result", "direction"] as const) if (filters[key]) query.set(key, filters[key]);
     window.history.replaceState(null, "", `/trades?${query}`);
     const initialQuery = new URLSearchParams({ month });
+    if (initialFilters.date) initialQuery.set("date", initialFilters.date);
     for (const key of ["session", "setup", "result", "direction"] as const) if (initialFilters[key]) initialQuery.set(key, initialFilters[key]);
     if (query.toString() === initialQuery.toString()) return;
     const controller = new AbortController();
@@ -57,12 +59,13 @@ export function TradesExplorer({ initialTrades, initialDrafts, month, initialFil
   }
 
   function onDeleted(id: string, kind: "trade" | "draft") {
+    onItemDeleted?.(id, kind);
     if (kind === "draft") setDrafts(current => current.filter(item => item.id !== id));
     else setTrades(current => current.filter(item => item.id !== id));
   }
 
   const filtered = Boolean(filters.session || filters.setup || filters.result || filters.direction);
-  const shownDrafts = drafts.filter(draft => !filters.result && (!filters.session || draft.data.session === filters.session) && (!filters.setup || draft.data.setup === filters.setup) && (!filters.direction || draft.data.direction === filters.direction));
+  const shownDrafts = drafts.filter(draft => !filters.date && !filters.result && (!filters.session || draft.data.session === filters.session) && (!filters.setup || draft.data.setup === filters.setup) && (!filters.direction || draft.data.direction === filters.direction));
   const shownCount = trades.length + shownDrafts.length;
 
   return <>

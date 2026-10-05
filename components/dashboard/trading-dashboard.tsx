@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, ArrowRight, ArrowUpRight, Gauge, ListChecks, Plus, Scale, Sparkles, Target, TrendingDown, TrendingUp } from "lucide-react";
+import { Activity, ArrowRight, ArrowUpRight, CalendarDays, Gauge, ListChecks, Plus, Scale, Sparkles, Target, TrendingDown, TrendingUp } from "lucide-react";
 import { MonthSelector } from "@/components/ui/month-selector";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ButtonLink } from "@/components/ui/button";
@@ -11,10 +11,11 @@ import {
   calculateCumulativeR, calculateDailyPerformance, calculateGroupPerformance,
   calculateRDistribution, calculateSetupPerformance, calculateStats,
 } from "@/lib/calculations";
-import { formatR, formatTradeDate, monthLabel } from "@/lib/utils";
+import { formatR, formatRR, formatTradeDate, monthLabel } from "@/lib/utils";
 import type { Trade } from "@/types/trade";
+import { UserGreeting } from "./user-greeting";
 
-export function TradingDashboard({ month, trades, previousNetR }: { month: string; trades: Trade[]; previousNetR?: number }) {
+export function TradingDashboard({ month, trades, previousNetR, firstName }: { month: string; trades: Trade[]; previousNetR?: number; firstName: string }) {
   const stats = calculateStats(trades);
   const setups = calculateSetupPerformance(trades);
   const sessions = calculateGroupPerformance(trades, "session");
@@ -23,6 +24,7 @@ export function TradingDashboard({ month, trades, previousNetR }: { month: strin
   const bestSession = sessions[0];
   const recent = [...trades].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
   return <div className="dashboard mx-auto max-w-[1500px] space-y-5 lg:space-y-6">
+    <UserGreeting firstName={firstName} />
     <DashboardHeader month={month} />
     {!trades.length ? <EmptyState /> : <>
       <PerformanceMetrics stats={stats} previousNetR={previousNetR} />
@@ -49,7 +51,7 @@ function DashboardHeader({ month }: { month: string }) {
       <h1 className="mt-1.5 text-[28px] font-semibold tracking-tight text-white sm:text-[32px]">{monthLabel(month)}</h1>
       <p className="mt-1 text-sm text-muted">XAUUSD <span className="mx-1.5 text-[#586779]">·</span> Monthly performance</p>
     </div>
-    <div className="flex flex-wrap items-center gap-2.5"><MonthSelector month={month} /><ButtonLink href="/journal" variant="primary"><Plus size={16} />Add Trade</ButtonLink></div>
+    <div className="flex flex-wrap items-center gap-2.5"><MonthSelector month={month} /><ButtonLink href={`/calendar?month=${month}`}><CalendarDays size={16} />Calendar</ButtonLink><ButtonLink href="/journal" variant="primary"><Plus size={16} />Add Trade</ButtonLink></div>
   </header>;
 }
 
@@ -60,7 +62,7 @@ function PerformanceMetrics({ stats, previousNetR }: { stats: Stats; previousNet
     { label: "Net R", value: formatR(stats.netR), icon: stats.netR >= 0 ? TrendingUp : TrendingDown, tone: (stats.netR >= 0 ? "profit" : "loss") as KpiTone, detail: comparison === null ? `${formatR(stats.averageR)} average per trade` : `${comparison >= 0 ? "+" : "−"}${formatR(Math.abs(comparison)).replace("+", "")} vs previous month` },
     { label: "Win rate", value: `${stats.winRate.toFixed(0)}%`, icon: Target, tone: "profit" as KpiTone, detail: `${stats.wins} wins · ${stats.losses} losses`, progress: stats.winRate },
     { label: "Total trades", value: String(stats.totalTrades), icon: ListChecks, tone: "neutral" as KpiTone, detail: `${stats.breakEvens} break-even` },
-    { label: "Average R:R", value: `1 : ${stats.averagePlannedRR.toFixed(1)}`, icon: Gauge, tone: "neutral" as KpiTone, detail: `${formatR(stats.averageR)} realized average` },
+    { label: "Average R:R", value: formatRR(stats.averagePlannedRR), icon: Gauge, tone: "neutral" as KpiTone, detail: "Planned reward per unit of risk" },
     { label: "Profit factor", value: stats.profitFactor === null ? "—" : stats.profitFactor.toFixed(2), icon: Scale, tone: (stats.profitFactor !== null && stats.profitFactor < 1 ? "loss" : "profit") as KpiTone, detail: "Gross wins ÷ gross losses" },
     { label: "Expectancy", value: formatR(stats.expectancy), icon: Activity, tone: (stats.expectancy >= 0 ? "profit" : "loss") as KpiTone, detail: "Expected R per trade" },
   ];

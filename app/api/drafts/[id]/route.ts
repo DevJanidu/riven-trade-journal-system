@@ -2,7 +2,8 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { deleteDraft, getDraftById, updateDraft } from "@/lib/data/drafts";
 import { failure, handleApiError, success, validationFailure } from "@/lib/api/response";
-import { isScreenshotKey, removeScreenshot } from "@/lib/storage";
+import { removeScreenshot, screenshotBelongsToUser, screenshotReferencesBelongToUser } from "@/lib/storage";
+import { requireUserId } from "@/lib/auth/session";
 import { draftSchema } from "@/lib/validations/draft";
 import { tradeIdSchema } from "@/lib/validations/trade";
 
@@ -26,12 +27,14 @@ export async function PATCH(request: Request, { params }: Context) {
   const parsed = draftSchema.safeParse(body);
   if (!parsed.success) return validationFailure(parsed.error);
   try {
+    const userId = await requireUserId();
+    if (!await screenshotReferencesBelongToUser([parsed.data.beforeScreenshot, parsed.data.afterScreenshot], userId)) return failure("Screenshot does not belong to this account", 403);
     const previous = await getDraftById(id);
     if (!previous) return failure("Draft not found", 404);
     const draft = await updateDraft(id, parsed.data);
     if (!draft) return failure("Draft not found", 404);
     const obsolete = [previous.data.beforeScreenshot, previous.data.afterScreenshot]
-      .filter((key): key is string => Boolean(key && isScreenshotKey(key) && key !== draft.data.beforeScreenshot && key !== draft.data.afterScreenshot));
+      .filter((key): key is string => Boolean(key && screenshotBelongsToUser(key, userId) && key !== draft.data.beforeScreenshot && key !== draft.data.afterScreenshot));
     if (obsolete.length) after(async () => {
       await Promise.all(obsolete.map(key => removeScreenshot(key).catch(error => console.error("Unable to remove replaced draft screenshot", error))));
     });
@@ -44,10 +47,11 @@ export async function DELETE(_request: Request, { params }: Context) {
   const { id } = await params;
   if (!tradeIdSchema.safeParse(id).success) return failure("Invalid draft ID", 400);
   try {
+    const userId = await requireUserId();
     const draft = await getDraftById(id);
     if (!draft) return failure("Draft not found", 404);
     await deleteDraft(id);
-    const keys = [draft.data.beforeScreenshot, draft.data.afterScreenshot].filter((key): key is string => Boolean(key && isScreenshotKey(key)));
+    const keys = [draft.data.beforeScreenshot, draft.data.afterScreenshot].filter((key): key is string => Boolean(key && screenshotBelongsToUser(key, userId)));
     if (keys.length) after(async () => {
       await Promise.all(keys.map(key => removeScreenshot(key).catch(error => console.error("Unable to remove deleted draft screenshot", error))));
     });

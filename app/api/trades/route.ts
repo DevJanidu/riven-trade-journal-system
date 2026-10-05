@@ -2,6 +2,8 @@ import { revalidatePath } from "next/cache";
 import { createTrade, getTrades } from "@/lib/data/trades";
 import { failure, handleApiError, queryObject, success, validationFailure } from "@/lib/api/response";
 import { createTradeSchema, tradeQuerySchema } from "@/lib/validations/trade";
+import { requireUserId } from "@/lib/auth/session";
+import { screenshotReferencesBelongToUser } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
@@ -23,6 +25,8 @@ export async function POST(request: Request) {
   const parsed = createTradeSchema.safeParse(body);
   if (!parsed.success) return validationFailure(parsed.error);
   try {
+    const userId = await requireUserId();
+    if (!await screenshotReferencesBelongToUser([parsed.data.beforeScreenshot, parsed.data.afterScreenshot], userId)) return failure("Screenshot does not belong to this account", 403);
     const trade = await createTrade(parsed.data);
     revalidatePath("/dashboard");
     revalidatePath("/trades");

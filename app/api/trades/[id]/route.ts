@@ -3,7 +3,8 @@ import { after } from "next/server";
 import { deleteTrade, getTradeById, updateTrade } from "@/lib/data/trades";
 import { failure, handleApiError, success, validationFailure } from "@/lib/api/response";
 import { tradeIdSchema, updateTradeSchema } from "@/lib/validations/trade";
-import { isScreenshotKey, removeScreenshot } from "@/lib/storage";
+import { removeScreenshot, screenshotBelongsToUser, screenshotReferencesBelongToUser } from "@/lib/storage";
+import { requireUserId } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
 type Context = { params: Promise<{ id: string }> };
@@ -27,12 +28,14 @@ export async function PATCH(request: Request, { params }: Context) {
   const parsed = updateTradeSchema.safeParse(body);
   if (!parsed.success) return validationFailure(parsed.error);
   try {
+    const userId = await requireUserId();
+    if (!await screenshotReferencesBelongToUser([parsed.data.beforeScreenshot, parsed.data.afterScreenshot], userId)) return failure("Screenshot does not belong to this account", 403);
     const imageChanged = Object.hasOwn(parsed.data, "beforeScreenshot") || Object.hasOwn(parsed.data, "afterScreenshot");
     const previous = imageChanged ? await getTradeById(id) : undefined;
     if (imageChanged && !previous) return failure("Trade not found", 404);
     const trade = await updateTrade(id, parsed.data, previous);
     if (!trade) return failure("Trade not found", 404);
-    const obsolete = previous ? [previous.beforeScreenshot, previous.afterScreenshot].filter((key): key is string => Boolean(key && isScreenshotKey(key) && key !== trade.beforeScreenshot && key !== trade.afterScreenshot)) : [];
+    const obsolete = previous ? [previous.beforeScreenshot, previous.afterScreenshot].filter((key): key is string => Boolean(key && screenshotBelongsToUser(key, userId) && key !== trade.beforeScreenshot && key !== trade.afterScreenshot)) : [];
     if (obsolete.length) after(async () => {
       await Promise.all(obsolete.map(key => removeScreenshot(key).catch(error => console.error("Unable to remove replaced screenshot", error))));
     });
@@ -49,11 +52,12 @@ export async function DELETE(_request: Request, { params }: Context) {
   const { id } = await params;
   if (!tradeIdSchema.safeParse(id).success) return failure("Invalid trade ID", 400);
   try {
+    const userId = await requireUserId();
     const trade = await getTradeById(id);
     if (!trade) return failure("Trade not found", 404);
     const removed = await deleteTrade(id);
     if (!removed) return failure("Trade not found", 404);
-    const images = [trade.beforeScreenshot, trade.afterScreenshot].filter((key): key is string => Boolean(key && isScreenshotKey(key)));
+    const images = [trade.beforeScreenshot, trade.afterScreenshot].filter((key): key is string => Boolean(key && screenshotBelongsToUser(key, userId)));
     await Promise.all(images.map(key => removeScreenshot(key).catch(error => console.error("Unable to remove deleted trade screenshot", error))));
     revalidatePath("/dashboard");
     revalidatePath("/trades");

@@ -1,13 +1,15 @@
 import { failure } from "@/lib/api/response";
-import { isScreenshotKey, readScreenshot, removeScreenshot } from "@/lib/storage";
+import { readScreenshot, removeScreenshot, userCanAccessScreenshot } from "@/lib/storage";
+import { requireUserId } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
 type Context = { params: Promise<{ key: string[] }> };
 
 async function getKey(context: Context) {
+  const userId = await requireUserId();
   const { key } = await context.params;
   const value = key.join("/");
-  return isScreenshotKey(value) ? value : null;
+  return await userCanAccessScreenshot(value, userId) ? value : null;
 }
 
 export async function GET(_request: Request, context: Context) {

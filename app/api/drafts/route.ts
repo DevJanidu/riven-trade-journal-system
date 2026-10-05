@@ -3,6 +3,8 @@ import { createDraft, getDrafts } from "@/lib/data/drafts";
 import { failure, handleApiError, success, validationFailure } from "@/lib/api/response";
 import { draftSchema } from "@/lib/validations/draft";
 import { monthSchema } from "@/lib/validations/trade";
+import { requireUserId } from "@/lib/auth/session";
+import { screenshotReferencesBelongToUser } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
@@ -20,6 +22,8 @@ export async function POST(request: Request) {
   const parsed = draftSchema.safeParse(body);
   if (!parsed.success) return validationFailure(parsed.error);
   try {
+    const userId = await requireUserId();
+    if (!await screenshotReferencesBelongToUser([parsed.data.beforeScreenshot, parsed.data.afterScreenshot], userId)) return failure("Screenshot does not belong to this account", 403);
     const draft = await createDraft(parsed.data);
     revalidatePath("/trades");
     return success(draft, 201);

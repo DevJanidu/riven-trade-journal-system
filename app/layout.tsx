@@ -10,8 +10,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Gold Journal", template: "%s · Gold Journal" },
-  description: "A focused XAUUSD trading journal for recording, reviewing, and improving.",
+  applicationName: "My Journal",
+  title: { default: "My Journal", template: "%s · My Journal" },
+  description: "My XAUUSD trading journal for recording, reviewing, and improving.",
+  icons: { icon: "/icon.png", apple: "/icon.png" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

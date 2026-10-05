@@ -7,11 +7,11 @@ const positiveMoney = money.positive("Must be greater than zero");
 
 export const tradeDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use a date in YYYY-MM-DD format").refine(value => {
   const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+  const date = new Date(`${value}T00:00:00Z`);
+  return year >= 1 && date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }, "Enter a valid calendar date");
 
-export const monthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Use a month in YYYY-MM format");
+export const monthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Use a month in YYYY-MM format").refine(value => Number(value.slice(0, 4)) >= 1, "Enter a valid calendar year");
 export const tradeIdSchema = z.string().uuid("Trade ID must be a UUID");
 
 const optionalUrl = z.union([z.string().url("Enter a valid URL").refine(value => ["http:", "https:"].includes(new URL(value).protocol), "Use an HTTP or HTTPS URL"), z.literal(""), z.null()]).optional().transform(value => value === "" ? null : value);
@@ -19,7 +19,7 @@ const optionalScreenshotUrl = z.union([z.string(), z.literal(null)]).optional().
   if (value === null || value === undefined) return true;
   if (value.length > 2048) return false;
   if (value.startsWith("/") && !value.startsWith("//") && !value.includes("..")) return true;
-  if (/^trades\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(png|jpg|webp)$/i.test(value)) return true;
+  if (/^(?:users\/[0-9a-f-]{36}\/)?trades\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(png|jpg|webp)$/i.test(value)) return true;
   try { return ["http:", "https:"].includes(new URL(value).protocol); } catch { return false; }
 }, "Provide a valid screenshot key or HTTP(S) URL");
 const note = z.string().max(10000, "Keep this note under 10,000 characters").default("");
@@ -81,6 +81,7 @@ export const updateTradeSchema = z.object({
 }).partial().strict().refine(value => Object.keys(value).length > 0, "Provide at least one field to update");
 
 export const tradeQuerySchema = z.object({
+  date: tradeDateSchema.optional(),
   month: monthSchema.optional(),
   session: z.enum(sessions).optional(),
   setup: z.string().trim().min(1).max(80).optional(),

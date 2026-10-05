@@ -138,8 +138,8 @@ export function calculateGroupPerformance(trades: Trade[], key: "session" | "dir
 
 export function monthBounds(month: string) {
   const [year, value] = month.split("-").map(Number);
-  const start = `${year}-${String(value).padStart(2, "0")}-01`;
-  const end = new Date(Date.UTC(year, value, 1)).toISOString().slice(0, 10);
+  const start = `${String(year).padStart(4, "0")}-${String(value).padStart(2, "0")}-01`;
+  const end = value === 12 ? `${String(year + 1).padStart(4, "0")}-01-01` : `${String(year).padStart(4, "0")}-${String(value + 1).padStart(2, "0")}-01`;
   return { start, end };
 }
 

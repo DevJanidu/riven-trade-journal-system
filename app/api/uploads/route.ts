@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { failure, success } from "@/lib/api/response";
 import { MAX_SCREENSHOT_BYTES, screenshotTypes, storeScreenshot } from "@/lib/storage";
+import { requireUserId } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const userId = await requireUserId();
   let form: FormData;
   try { form = await request.formData(); } catch { return failure("Request must contain multipart form data", 400); }
   const file = form.get("file");
@@ -21,7 +23,7 @@ export async function POST(request: Request) {
       : bytes[0] === 82 && bytes[1] === 73 && bytes[2] === 70 && bytes[3] === 70 && bytes[8] === 87 && bytes[9] === 69 && bytes[10] === 66 && bytes[11] === 80;
   if (!signatureMatches) return failure("The selected file is not a valid PNG, JPEG, or WebP image", 400);
 
-  const key = `trades/${randomUUID()}/${randomUUID()}.${extension}`;
+  const key = `users/${userId}/trades/${randomUUID()}/${randomUUID()}.${extension}`;
   try {
     await storeScreenshot(key, bytes, file.type);
     return success({ key }, 201);

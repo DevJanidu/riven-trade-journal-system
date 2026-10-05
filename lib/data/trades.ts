@@ -11,6 +11,7 @@ import {
 } from "@/lib/trading/calculations";
 import type { CumulativeRPoint, DashboardSummary, SetupPerformance, Trade, TradeFilters } from "@/types/trade";
 import { deleteCached, getCached, setCached } from "@/lib/cache";
+import { requireUserId } from "@/lib/auth/session";
 
 type DashboardData = {
   month: string;
@@ -61,9 +62,11 @@ function toTrade(row: TradeRow): Trade {
   };
 }
 
-function conditionsFor(filters: TradeFilters): SQL[] {
-  const conditions: SQL[] = [];
-  if (filters.month) {
+function conditionsFor(filters: TradeFilters, userId: string): SQL[] {
+  const conditions: SQL[] = [eq(trades.userId, userId)];
+  if (filters.date) {
+    conditions.push(eq(trades.date, filters.date));
+  } else if (filters.month) {
     const { start, end } = monthBounds(filters.month);
     conditions.push(gte(trades.date, start), lt(trades.date, end));
   }
@@ -75,14 +78,15 @@ function conditionsFor(filters: TradeFilters): SQL[] {
 }
 
 export async function getTrades(filters: TradeFilters = {}): Promise<Trade[]> {
+  const userId = await requireUserId();
   try {
     const rows = await getDb().select().from(trades)
-      .where(and(...conditionsFor(filters)))
+      .where(and(...conditionsFor(filters, userId)))
       .orderBy(desc(trades.date), desc(trades.createdAt), desc(trades.id));
     return rows.map(toTrade);
   } catch (error) {
     if (!isPreflightColumnError(error)) throw error;
-    return getLegacyTrades(filters);
+    return getLegacyTrades(filters, userId);
   }
 }
 
@@ -96,8 +100,8 @@ function isPreflightColumnError(error: unknown) {
   return /column .*?(setup_grade|setup_checklist|setup_avoid_checklist|psychology_ready|psychology_answer).* does not exist/i.test(messages.join(" "));
 }
 
-async function getLegacyTrades(filters: TradeFilters): Promise<Trade[]> {
-  const result = await getDb().execute(sql`SELECT id, date, instrument, session, direction, entry, stop_loss AS "stopLoss", take_profit AS "takeProfit", risk_amount AS "riskAmount", planned_rr AS "plannedRR", actual_r AS "actualR", profit_loss AS "profitLoss", result, setup, trading_view_url AS "tradingViewUrl", before_screenshot AS "beforeScreenshot", after_screenshot AS "afterScreenshot", entry_reason AS "entryReason", went_well AS "wentWell", went_wrong AS "wentWrong", improvement, followed_rules AS "followedRules", emotion, created_at AS "createdAt", updated_at AS "updatedAt" FROM trades ORDER BY date DESC, created_at DESC, id DESC`);
+async function getLegacyTrades(filters: TradeFilters, userId: string): Promise<Trade[]> {
+  const result = await getDb().execute(sql`SELECT id, user_id AS "userId", date, instrument, session, direction, entry, stop_loss AS "stopLoss", take_profit AS "takeProfit", risk_amount AS "riskAmount", planned_rr AS "plannedRR", actual_r AS "actualR", profit_loss AS "profitLoss", result, setup, trading_view_url AS "tradingViewUrl", before_screenshot AS "beforeScreenshot", after_screenshot AS "afterScreenshot", entry_reason AS "entryReason", went_well AS "wentWell", went_wrong AS "wentWrong", improvement, followed_rules AS "followedRules", emotion, created_at AS "createdAt", updated_at AS "updatedAt" FROM trades WHERE ${and(...conditionsFor(filters, userId))} ORDER BY date DESC, created_at DESC, id DESC`);
   const rows = (result as unknown as Array<Record<string, unknown>>).map(row => ({
     ...row,
     setupGrade: null,
@@ -108,14 +112,12 @@ async function getLegacyTrades(filters: TradeFilters): Promise<Trade[]> {
     profitBooked: "0",
     breakEvenAfterProfit: false,
   })) as unknown as TradeRow[];
-  return rows.map(toTrade).filter(trade => {
-    if (filters.month) { const [year, month] = filters.month.split("-").map(Number); if (trade.date < `${year}-${String(month).padStart(2, "0")}-01` || trade.date >= monthBounds(filters.month).end) return false; }
-    return (!filters.session || trade.session === filters.session) && (!filters.setup || trade.setup === filters.setup) && (!filters.result || trade.result === filters.result) && (!filters.direction || trade.direction === filters.direction);
-  });
+  return rows.map(toTrade);
 }
 
 export async function getMonthlyTrades(month: string): Promise<Trade[]> {
-  const cacheKey = `tradezilla:trades:${month}`;
+  const userId = await requireUserId();
+  const cacheKey = `tradezilla:trades:${userId}:${month}`;
   const cached = await getCached<Trade[]>(cacheKey);
   if (cached !== null) return cached;
   const monthly = await getTrades({ month });
@@ -123,29 +125,32 @@ export async function getMonthlyTrades(month: string): Promise<Trade[]> {
   return monthly;
 }
 
-async function invalidateMonth(...months: string[]) {
-  await deleteCached(...months.flatMap(month => [
-    `tradezilla:trades:${month}`,
-    `tradezilla:dashboard:${month}`,
+async function invalidateMonth(userId: string, ...months: string[]) {
+  // Calendar reads are uncached. Invalidate only this user's affected cached months.
+  await deleteCached(...[...new Set(months)].flatMap(month => [
+    `tradezilla:trades:${userId}:${month}`,
+    `tradezilla:dashboard:${userId}:${month}`,
   ]));
 }
 
 export async function getRecentTrades(month: string, limit = 5): Promise<Trade[]> {
+  const userId = await requireUserId();
   const { start, end } = monthBounds(month);
   const rows = await getDb().select().from(trades)
-    .where(and(gte(trades.date, start), lt(trades.date, end)))
+    .where(and(eq(trades.userId, userId), gte(trades.date, start), lt(trades.date, end)))
     .orderBy(desc(trades.date), desc(trades.createdAt), desc(trades.id))
     .limit(limit);
   return rows.map(toTrade);
 }
 
 export async function getTradeById(id: string): Promise<Trade | null> {
+  const userId = await requireUserId();
   try {
-    const [row] = await getDb().select().from(trades).where(eq(trades.id, id)).limit(1);
+    const [row] = await getDb().select().from(trades).where(and(eq(trades.id, id), eq(trades.userId, userId))).limit(1);
     return row ? toTrade(row) : null;
   } catch (error) {
     if (!isPreflightColumnError(error)) throw error;
-    const [trade] = (await getLegacyTrades({})).filter(item => item.id === id);
+    const [trade] = (await getLegacyTrades({}, userId)).filter(item => item.id === id);
     return trade ?? null;
   }
 }
@@ -187,8 +192,9 @@ function storedValues(input: CreateTradeInput) {
 }
 
 export async function createTrade(input: CreateTradeInput, id?: string): Promise<Trade> {
-  const [row] = await getDb().insert(trades).values({ ...storedValues(input), ...(id ? { id } : {}) }).returning();
-  await invalidateMonth(input.date.slice(0, 7));
+  const userId = await requireUserId();
+  const [row] = await getDb().insert(trades).values({ ...storedValues(input), userId, ...(id ? { id } : {}) }).returning();
+  await invalidateMonth(userId, input.date.slice(0, 7));
   return toTrade(row);
 }
 
@@ -229,6 +235,7 @@ function editableValues(existing: Trade) {
 }
 
 export async function updateTrade(id: string, changes: UpdateTradeInput, previous?: Trade | null): Promise<Trade | null> {
+  const userId = await requireUserId();
   const needsPrevious = changes.date !== undefined || Object.keys(changes).some(key => dependentFields.has(key as keyof UpdateTradeInput));
   const existing = needsPrevious ? previous ?? await getTradeById(id) : previous;
   if (needsPrevious && !existing) return null;
@@ -273,20 +280,22 @@ export async function updateTrade(id: string, changes: UpdateTradeInput, previou
     }
   }
 
-  const [row] = await getDb().update(trades).set(values).where(eq(trades.id, id)).returning();
-  if (row) await invalidateMonth(existing?.date.slice(0, 7) ?? row.date.slice(0, 7), row.date.slice(0, 7));
+  const [row] = await getDb().update(trades).set(values).where(and(eq(trades.id, id), eq(trades.userId, userId))).returning();
+  if (row) await invalidateMonth(userId, existing?.date.slice(0, 7) ?? row.date.slice(0, 7), row.date.slice(0, 7));
   return row ? toTrade(row) : null;
 }
 
 export async function deleteTrade(id: string): Promise<boolean> {
+  const userId = await requireUserId();
   const existing = await getTradeById(id);
-  const [row] = await getDb().delete(trades).where(eq(trades.id, id)).returning({ id: trades.id });
-  if (row && existing) await invalidateMonth(existing.date.slice(0, 7));
+  const [row] = await getDb().delete(trades).where(and(eq(trades.id, id), eq(trades.userId, userId))).returning({ id: trades.id });
+  if (row && existing) await invalidateMonth(userId, existing.date.slice(0, 7));
   return Boolean(row);
 }
 
 export async function getDashboardData(month: string): Promise<DashboardData> {
-  const cacheKey = `tradezilla:dashboard:${month}`;
+  const userId = await requireUserId();
+  const cacheKey = `tradezilla:dashboard:${userId}:${month}`;
   const cached = await getCached<DashboardData>(cacheKey);
   if (cached) return cached;
   const monthly = await getMonthlyTrades(month);
@@ -307,8 +316,9 @@ export async function getDashboardData(month: string): Promise<DashboardData> {
 }
 
 export async function getChronologicalTrades(month: string) {
+  const userId = await requireUserId();
   const { start, end } = monthBounds(month);
-  const rows = await getDb().select().from(trades).where(and(gte(trades.date, start), lt(trades.date, end)))
+  const rows = await getDb().select().from(trades).where(and(eq(trades.userId, userId), gte(trades.date, start), lt(trades.date, end)))
     .orderBy(asc(trades.date), asc(trades.createdAt), asc(trades.id));
   return rows.map(toTrade);
 }

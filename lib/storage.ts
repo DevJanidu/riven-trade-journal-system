@@ -2,6 +2,9 @@ import "server-only";
 
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { and, eq, or, sql } from "drizzle-orm";
+import { getDb } from "@/lib/db";
+import { tradeDrafts, trades } from "@/lib/db/schema";
 
 export const MAX_SCREENSHOT_BYTES = 8 * 1024 * 1024;
 export const screenshotTypes = {
@@ -32,7 +35,25 @@ function getStorage(): Storage {
 }
 
 export function isScreenshotKey(value: string): boolean {
-  return /^trades\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(png|jpg|webp)$/i.test(value);
+  return /^(?:users\/[0-9a-f-]{36}\/)?trades\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(png|jpg|webp)$/i.test(value);
+}
+
+export function screenshotBelongsToUser(value: string, userId: string): boolean {
+  return value.startsWith(`users/${userId}/`) && isScreenshotKey(value);
+}
+
+export async function userCanAccessScreenshot(value: string, userId: string): Promise<boolean> {
+  if (screenshotBelongsToUser(value, userId)) return true;
+  if (!/^trades\//i.test(value) || !isScreenshotKey(value)) return false;
+  const [trade] = await getDb().select({ id: trades.id }).from(trades).where(and(eq(trades.userId, userId), or(eq(trades.beforeScreenshot, value), eq(trades.afterScreenshot, value)))).limit(1);
+  if (trade) return true;
+  const [draft] = await getDb().select({ id: tradeDrafts.id }).from(tradeDrafts).where(and(eq(tradeDrafts.userId, userId), or(sql`${tradeDrafts.data}->>'beforeScreenshot' = ${value}`, sql`${tradeDrafts.data}->>'afterScreenshot' = ${value}`))).limit(1);
+  return Boolean(draft);
+}
+
+export async function screenshotReferencesBelongToUser(values: Array<string | null | undefined>, userId: string) {
+  const storedKeys = values.filter((value): value is string => Boolean(value && isScreenshotKey(value)));
+  return (await Promise.all(storedKeys.map(value => userCanAccessScreenshot(value, userId)))).every(Boolean);
 }
 
 export async function storeScreenshot(key: string, body: Uint8Array, contentType: string) {

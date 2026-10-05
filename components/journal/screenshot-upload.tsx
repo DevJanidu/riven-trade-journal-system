@@ -22,7 +22,7 @@ export function ScreenshotUpload({ label, name, initialUrl }: { label: string; n
       }
     }
   }
-  const imageUrl = initialUrl?.startsWith("trades/") ? `/api/uploads/${initialUrl}` : initialUrl;
+  const imageUrl = initialUrl && (initialUrl.startsWith("trades/") || initialUrl.startsWith("users/")) ? `/api/uploads/${initialUrl}` : initialUrl;
   const display = cleared ? undefined : preview ?? imageUrl;
   return <div><p className="mb-2 text-sm font-medium text-[#cbd3d8]">{label}</p>
     <input ref={inputRef} name={name} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={event => select(event.target.files?.[0])} />

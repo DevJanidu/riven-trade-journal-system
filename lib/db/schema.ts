@@ -7,25 +7,46 @@ export const directionEnum = pgEnum("trade_direction", directions);
 export const resultEnum = pgEnum("trade_result", results);
 export const emotionEnum = pgEnum("trade_emotion", emotions);
 
+export const users = pgTable("users", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+}, table => [uniqueIndex("users_email_idx").on(table.email)]);
+
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true, mode: "date" }),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+}, table => [uniqueIndex("password_reset_tokens_hash_idx").on(table.tokenHash), index("password_reset_tokens_user_idx").on(table.userId)]);
+
 export const setupTypes = pgTable("setup_types", {
   id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   rules: jsonb("rules").$type<string[]>().notNull().default([]),
   avoidRules: jsonb("avoid_rules").$type<string[]>().notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
-}, table => [uniqueIndex("setup_types_name_idx").on(table.name)]);
+}, table => [uniqueIndex("setup_types_user_name_idx").on(table.userId, table.name)]);
 
 export const tradeDrafts = pgTable("trade_drafts", {
   id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   date: date("date", { mode: "string" }).notNull(),
   data: jsonb("data").$type<import("@/lib/validations/draft").DraftInput>().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
-}, table => [index("trade_drafts_date_idx").on(table.date)]);
+}, table => [index("trade_drafts_user_date_idx").on(table.userId, table.date)]);
 
 export const trades = pgTable("trades", {
   id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   date: date("date", { mode: "string" }).notNull(),
   instrument: text("instrument").notNull().default("XAUUSD"),
   session: sessionEnum("session").notNull(),
@@ -59,6 +80,7 @@ export const trades = pgTable("trades", {
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
 }, table => [
   index("trades_date_created_idx").on(table.date, table.createdAt),
+  index("trades_user_date_idx").on(table.userId, table.date),
   index("trades_session_idx").on(table.session),
   index("trades_setup_idx").on(table.setup),
   index("trades_result_idx").on(table.result),

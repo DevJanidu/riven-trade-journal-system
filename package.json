@@ -1,5 +1,5 @@
 {
-  "name": "tradezilla",
+  "name": "my-journal",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -8,8 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test:unit": "node --require ./scripts/userinfo-fallback.cjs --import tsx --test tests/calculations.test.ts tests/cache.test.ts tests/trade-patch.test.ts",
+    "test:unit": "node --require ./scripts/userinfo-fallback.cjs --import tsx --test tests/calculations.test.ts tests/cache.test.ts tests/trade-patch.test.ts tests/calendar.test.ts tests/rr.test.ts",
+    "test:calendar:live": "node --require ./scripts/userinfo-fallback.cjs --import tsx scripts/test-calendar-flow.ts",
+    "test:calendar:browser": "node --require ./scripts/userinfo-fallback.cjs --import tsx scripts/test-calendar-browser.ts",
     "test:cache:live": "node --require ./scripts/userinfo-fallback.cjs --import tsx scripts/check-cache.ts",
+    "test:isolation": "node --require ./scripts/userinfo-fallback.cjs --import tsx scripts/check-user-isolation.ts",
     "db:generate": "node --require ./scripts/userinfo-fallback.cjs ./node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --require ./scripts/userinfo-fallback.cjs ./node_modules/drizzle-kit/bin.cjs migrate",
     "db:migrate:http": "node --require ./scripts/userinfo-fallback.cjs --import tsx scripts/migrate-http.ts",

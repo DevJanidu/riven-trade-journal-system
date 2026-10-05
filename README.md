@@ -1,4 +1,4 @@
-# Gold Journal
+# My Journal
 
 A personal XAUUSD-only trading journal built with Next.js App Router, TypeScript, Tailwind CSS, Recharts, Neon PostgreSQL, Drizzle ORM, and Zod. The database is the source of truth for trades and monthly analytics; the only mock trades are in the optional development seed.
 
